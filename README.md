@@ -44,6 +44,20 @@ Yaw is folded to ±45° because the square peg has 90° symmetry (1.0% without f
 
 ## How to reproduce
 
+Setup (Linux, Python 3.12; no API key needed: Astra's policy is cached in `results/policies/v1.py`):
+
+```bash
+git clone https://github.com/Ice-Citron/gaphunter.git && cd gaphunter
+python3.12 -m venv .venv
+.venv/bin/pip install numpy==2.5.4 scipy==1.18.1 pandas==3.0.6 matplotlib==3.11.2 \
+  streamlit==1.66.0 imageio==2.38.1 imageio-ffmpeg==0.6.0 mujoco==3.16.0
+git clone --filter=blob:none --sparse https://github.com/google-deepmind/mujoco_menagerie.git third_party/mujoco_menagerie
+git -C third_party/mujoco_menagerie sparse-checkout set universal_robots_ur5e
+git -C third_party/mujoco_menagerie checkout 62ab00f
+```
+
+Run (about 1 minute; CSVs match the committed ones except `t_wall`):
+
 ```bash
 export GAPHUNTER_SIM=mujoco
 .venv/bin/python -m runner.batch  --box local  --n 30 --tag local  --workers 8
@@ -53,7 +67,7 @@ export GAPHUNTER_SIM=mujoco
 .venv/bin/streamlit run app/streamlit_app.py
 ```
 
-Setup: `sim/README.md`.
+Details: `sim/README.md`.
 
 ## Limitations
 
