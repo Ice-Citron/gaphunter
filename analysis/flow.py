@@ -25,7 +25,7 @@ from analysis.coverage import (POLICY_COLUMNS, SEARCH_RANGE_MM, _range, coverage
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "docs" / "flow.html"
 ASSETS = ROOT / "docs" / "assets" / "flow"
-BINS = 8
+BINS = 16  # the ±0.05 m local box spans 4×4 cells of the ±0.20 m deployment box
 TASK_OF_SIM = {"mujoco": "peg", "ditto": "sphere"}
 
 
