@@ -5,3 +5,5 @@ credentials.env
 credentials.env.*
 *.env
 .streamlit/secrets.toml
+llms-for-robot-control/
+results/clips/*.mp4.tmp
