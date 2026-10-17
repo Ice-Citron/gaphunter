@@ -126,6 +126,8 @@ def main() -> None:
         ddf = pd.read_csv(ROOT / "results/deploy.csv")
         print("heatmap:", heatmap(pd.concat([ldf, ddf], ignore_index=True), local_box=lb, deploy_box=db,
                                   path=str(ROOT / "results/heatmap.png")))
+        from analysis.site import build
+        print("site:", build())
     for w in warns:
         print(f"WARN {w}", file=sys.stderr)
     for name in DOCS:

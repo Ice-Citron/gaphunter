@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GapHunter</title>
+<meta name="description" content="Find where your benchmark stopped before the hidden eval does.">
+<style>
+:root { --bg: #08090a; --panel: #101113; --ink: #f7f8f8; --muted: #8a8f98; --faint: #3a3d43;
+        --line: #1d1f23; --accent: #ff5a3c; }
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); line-height: 1.5;
+       font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+a { color: var(--ink); text-decoration: underline; text-decoration-color: var(--faint); text-underline-offset: 3px; }
+a:hover { text-decoration-color: var(--ink); }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .9em; color: var(--ink); }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+section { padding: 96px 0; border-top: 1px solid var(--line); }
+section:first-of-type { border-top: 0; }
+.eyebrow { color: var(--muted); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; margin: 0 0 20px; }
+h1 { font-size: clamp(48px, 9vw, 104px); line-height: 1; letter-spacing: -.045em; font-weight: 650; margin: 0 0 24px; }
+h2 { font-size: clamp(28px, 4vw, 44px); letter-spacing: -.03em; line-height: 1.1; font-weight: 600; margin: 0 0 32px; }
+.lede { font-size: clamp(20px, 2.4vw, 26px); color: var(--muted); max-width: 760px; margin: 0; letter-spacing: -.01em; }
+.cta { margin-top: 40px; display: flex; gap: 24px; flex-wrap: wrap; font-size: 15px; }
+.quote { font-size: clamp(56px, 10vw, 128px); font-weight: 650; letter-spacing: -.05em; line-height: 1; margin: 0 0 28px; }
+.quote .arrow { color: var(--muted); font-weight: 400; }
+.quote small { display: block; font-size: 15px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 500; margin-top: 16px; }
+.prose { font-size: 19px; color: var(--muted); max-width: 720px; margin: 0; }
+.nums { display: grid; grid-template-columns: 1.6fr 1fr 1fr; gap: 32px; align-items: end; }
+.num .v { font-size: clamp(40px, 6vw, 64px); font-weight: 600; letter-spacing: -.04em; line-height: 1; }
+.num.hero .v { font-size: clamp(88px, 15vw, 184px); color: var(--accent); font-weight: 650; }
+.num .l { color: var(--muted); font-size: 15px; margin-top: 12px; }
+.num .n { color: var(--faint); font-size: 13px; font-variant-numeric: tabular-nums; }
+figure { margin: 0; }
+figure img { width: 100%; height: auto; display: block; border-radius: 12px; border: 1px solid var(--line); }
+figcaption { color: var(--muted); font-size: 14px; margin-top: 16px; }
+.tbl { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 720px; }
+th { text-align: left; color: var(--muted); font-weight: 500; padding: 10px 8px; border-bottom: 1px solid var(--line); }
+td { padding: 12px 8px; border-bottom: 1px solid var(--line); color: var(--ink); }
+td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr.planned td { color: var(--faint); }
+.clips { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+.clip video { width: 100%; border-radius: 12px; border: 1px solid var(--line); background: #000; display: block; }
+.clip h3 { font-size: 15px; font-weight: 500; color: var(--muted); margin: 0 0 14px; letter-spacing: .02em; }
+.clip p { color: var(--faint); font-size: 13px; margin: 12px 0 0; }
+.why { font-size: clamp(20px, 2.4vw, 26px); letter-spacing: -.01em; max-width: 900px; margin: 48px 0 0; }
+.how { list-style: none; padding: 0; margin: 0; display: grid; gap: 28px; max-width: 900px; }
+.how li { display: grid; grid-template-columns: 120px 1fr; gap: 24px; font-size: 19px; color: var(--muted); }
+.how b { color: var(--ink); font-weight: 600; }
+footer { border-top: 1px solid var(--line); padding: 64px 0 96px; color: var(--muted); }
+footer ol { margin: 0 0 40px; padding-left: 20px; font-size: 17px; max-width: 760px; }
+footer li { margin-bottom: 10px; }
+@media (max-width: 760px) {
+  section { padding: 64px 0; }
+  .nums, .clips { grid-template-columns: 1fr; }
+  .how li { grid-template-columns: 1fr; gap: 4px; }
+}
+</style>
+</head>
+<body>
+<main class="wrap">
+<section>
+  <p class="eyebrow">GapHunter</p>
+  <h1>Find where your benchmark stopped before the hidden eval does.</h1>
+  <p class="lede"><b>Sample → run → map → report.</b> GapHunter samples the hole offset (<code>dx</code>, <code>dy</code>, yaw) from the benchmark&#x27;s box and a wider deployment box, runs the policy, and maps where it fails. Task: MuJoCo UR5e peg-in-hole, 20 mm square peg, 21 mm hole. Success: depth ≥ 30 mm, lateral error &lt; 1 mm.</p>
+  <div class="cta"><a href="https://github.com/Ice-Citron/gaphunter">Repository →</a><a href="https://github.com/Ice-Citron/gaphunter#how-to-reproduce">Reproduce →</a></div>
+</section>
+
+<section>
+  <div class="quote">141 <span class="arrow">→</span> 89<small>Intrinsic AIC 2026 · local benchmark → hidden eval</small></div>
+  <p class="prose">The local scenes randomised the board over a radius a third smaller than the real one. The benchmark never tested where the policy fails.</p>
+</section>
+
+<section>
+  <p class="eyebrow">astra-script · 30 local · 600 deployment trials</p>
+  <div class="nums">
+    <div class="num hero"><div class="v">13%</div><div class="l">success outside the local box</div><div class="n">n = 586</div></div>
+    <div class="num"><div class="v">90%</div><div class="l">inside the benchmark</div><div class="n">n = 30</div></div>
+    <div class="num"><div class="v">16%</div><div class="l">over the deployment box</div><div class="n">n = 600</div></div>
+  </div>
+</section>
+
+<section>
+  <figure>
+    <img src="assets/heatmap.png" alt="Success-rate heatmap, success by dy, and success by perception error; dashed box = local benchmark" loading="lazy">
+    <figcaption><code>hole_pose()</code> error is a modelled r³ distortion mirroring the AIC calibration radius, not a measured camera effect. The local benchmark covers 2.1% of the deployment domain by volume (dx × dy × yaw; yaw folded to ±45° by the peg symmetry). The policy succeeds on 90% of local trials (n=30) and 16% of deployment trials (n=600); outside the local box it succeeds on 13% (n=586). Failures concentrate in: dx ∈ [+0.13, +0.20] m (0%, n=101); dy ∈ [-0.20, -0.13] m (0%, n=100); dy ∈ [+0.13, +0.20] m (0%, n=100); dx ∈ [-0.20, -0.13] m (1%, n=101). A benchmark that stopped at the local box would have reported 90% and shipped.</figcaption>
+  </figure>
+</section>
+
+<section>
+  <h2>Policies compared</h2>
+  <div class="tbl"><table><tr><th>policy</th><th>family</th><th>task</th><th>n local</th><th>local success</th><th>n deploy</th><th>deploy success</th><th>outside-box success</th><th>status</th></tr><tr><td>astra-script</td><td>LLM-written policy code</td><td>peg-in-hole, UR5e</td><td class=num>30</td><td class=num>90%</td><td class=num>600</td><td class=num>16%</td><td class=num>13%</td><td>full</td></tr><tr><td>astra-live</td><td>LLM closed-loop control</td><td>Ditto sphere-in-basket, Franka</td><td class=num>8</td><td class=num>0/8 (0%)</td><td class=num>not run</td><td class=num>not run</td><td class=num>not run</td><td>smoke</td></tr><tr class="planned"><td>molmoact2</td><td>VLA</td><td>Ditto sphere-in-basket, Franka</td><td class=num>planned</td><td class=num>planned</td><td class=num>planned</td><td class=num>planned</td><td class=num>planned</td><td>planned</td></tr><tr class="planned"><td>pi05</td><td>VLA</td><td>Ditto sphere-in-basket, Franka</td><td class=num>planned</td><td class=num>planned</td><td class=num>planned</td><td class=num>planned</td><td class=num>planned</td><td>planned</td></tr><tr class="planned"><td>gemini-robotics</td><td>VLA</td><td>not chosen yet</td><td class=num>planned</td><td class=num>planned</td><td class=num>planned</td><td class=num>planned</td><td class=num>planned</td><td>planned</td></tr><tr class="planned"><td>gr00t</td><td>VLA</td><td>not chosen yet</td><td class=num>planned</td><td class=num>planned</td><td class=num>planned</td><td class=num>planned</td><td class=num>planned</td><td>planned</td></tr></table></div>
+</section>
+
+<section>
+  <div class="clips">
+    <div class="clip"><h3>In the benchmark</h3><video src="assets/b8d5c1ac421725758b8a285483132db2f2f4fd07.mp4" controls muted loop playsinline preload="metadata"></video><p>dx +0.000 m · dy +0.000 m · yaw +0° · success · lateral 0.1 mm · 71 API calls</p></div>
+    <div class="clip"><h3>Outside the benchmark</h3><video src="assets/235c47772ad506e957ba5b5372a46d0814261adc.mp4" controls muted loop playsinline preload="metadata"></video><p>dx +0.140 m · dy +0.173 m · yaw -25° · miss · lateral 17.0 mm · 227 API calls</p></div>
+  </div>
+  <p class="why">At dx = +0.14 m, dy = +0.17 m, hole_pose() puts the hole 17.5 mm from where it is, about 10× the ±1.8 mm that Astra&#x27;s policy searches around its estimate. The peg ends 17.0 mm off after 227 API calls, with a peak force of 15.3 N, well under the 150 N abort, so the policy never notices: miss.</p>
+</section>
+
+<section>
+  <h2>How it works</h2>
+  <ol class="how"><li><b>Sample</b><span>30 points in the benchmark's box, 600 Sobol points over the deployment box (dx -0.20…+0.20 m, dy -0.20…+0.20 m, yaw -90…+90°).</span></li><li><b>Run</b><span>each point through <code>run_trial(params) → TrialResult</code>: peg-in-hole, UR5e.</span></li><li><b>Map</b><span>success rate per cell, with the benchmark's box drawn on top.</span></li><li><b>Report</b><span>the benchmark covers 2.1% of the domain; the worst band is dx +0.13…+0.20 at 0% (n=101).</span></li></ol>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <ol><li>The goal of any robotics firm is to deploy a system with four-nines reliability as cheaply as possible.</li><li>Each step-up in the reliability regime — 90%, 99%, 99.9%, 99.99% — is equally difficult.</li></ol>
+    <a href="https://github.com/Ice-Citron/gaphunter">github.com/Ice-Citron/gaphunter</a>
+  </div>
+</footer>
+</body>
+</html>

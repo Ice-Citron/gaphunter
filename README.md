@@ -1,6 +1,6 @@
 # GapHunter
 
-**Find where your benchmark stopped before the hidden eval does.**
+**Find where your benchmark stopped before the hidden eval does.** [Live page](https://ice-citron.github.io/gaphunter/)
 
 ![GapHunter app](docs/hero.png)
 
