@@ -3,6 +3,11 @@
     python -m runner.batch --box local  --n 30  --tag local  --workers 4
     python -m runner.batch --box deploy --n 100 --tag deploy --workers 4 --render-failures 4
     python -m runner.batch --tag deploy --summary          # summarise an existing CSV
+    python -m runner.batch --box local --n 30 --tag local --policy astra-script   # -> results/mujoco_astra-script_local.csv
+
+--policy only names the CSV (results/<sim>_<policy>_<tag>.csv, sim = $GAPHUNTER_SIM). It does not pick the
+policy: sim/mj_trial.py reads GAPHUNTER_POLICY as a policy file name (results/policies/<v>.py).
+Without --policy the CSV is results/<tag>.csv, as before (local.csv/deploy.csv are the astra-script row).
 """
 from __future__ import annotations
 
@@ -173,8 +178,12 @@ def main() -> None:
     ap.add_argument("--fake", action="store_true", help="force runner.fake even if sim.trial imports")
     ap.add_argument("--jitter", type=float, default=0.0, help="max random sleep (s) at worker start")
     ap.add_argument("--summary", action="store_true", help="only summarise results/<tag>.csv; run nothing")
+    ap.add_argument("--policy", default=None, help="CSV becomes results/<sim>_<policy>_<tag>.csv (naming only)")
     a = ap.parse_args()
     tag = a.tag or a.box
+    if a.policy:
+        sim = "fake" if a.fake else os.environ.get("GAPHUNTER_SIM", "fake")
+        tag = f"{sim}_{a.policy}_{tag}"
 
     if a.summary:
         df = pd.read_csv(RESULTS / f"{tag}.csv")
