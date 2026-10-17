@@ -1,43 +1,54 @@
 # GapHunter
 
-**Find where your benchmark stopped before the hidden eval does.** [Live page](https://ice-citron.github.io/gaphunter/)
+**Find where your robot policy breaks before your customers do.**
 
-![GapHunter app](docs/hero.png)
+### ▶ [Open the live demo](https://ice-citron.github.io/gaphunter/flow.html)
 
-## Problem
+[![GapHunter demo: two policies compared on the peg-in-hole task](docs/flow.png)](https://ice-citron.github.io/gaphunter/flow.html)
 
-In Intrinsic AIC 2026 our policy scored 141 locally and 89 on the hidden evaluation.
-The local scenes randomised the board over a radius a third smaller than the real one.
-The benchmark never tested where the policy fails.
+The demo walks through a full evaluation: pick a task, pick policies, configure the sweep, watch the trials
+replay, and compare the results side by side. Every number, map and clip in it comes from the committed runs in
+this repository. Also: [project page](https://ice-citron.github.io/gaphunter/).
+
+## Why
+
+The goal of any robotics firm is to deploy a system with four-nines (99.99%) reliability as cheaply as possible.
+
+Foundation models are closing in on the first part of that. As LLMs like Opus improve and robotic foundation
+models mature, I believe in one to two years teams will be able to zero-shot or lightly fine-tune foundation
+models to get policies, for arbitrary tasks, that work 90% or 99% of the time. Yet this is not enough to deploy.
+
+Runs of nines. Each step up the reliability ladder, 90% to 99% to 99.9% to 99.99%, is as hard as the last.
+Capability gets you the first nine. The remaining nines come from finding every case where the policy breaks,
+and proving you have found them.
+
+Hence, I believe this is where the future gap in the market will be: not in building stronger base policies,
+but in helping others bridge their policies from 90% to 99.99% reliability.
 
 ## What GapHunter does
 
-**Sample → run → map → report.** GapHunter samples the hole offset (`dx`, `dy`, yaw) from the
-benchmark's box and a wider deployment box, runs the policy, and maps where
-it fails. Task: MuJoCo UR5e peg-in-hole, 20 mm square peg, 21 mm hole. Success: depth ≥ 30 mm, lateral error < 1 mm.
+I built GapHunter for this gap. You bring a policy for a defined task, and GapHunter runs coverage-driven tests
+against it in simulation (MuJoCo and ManiSkill for now). It samples the full deployment workspace rather than the
+range the policy was written for, and returns the policy's operating envelope: where it works, where it
+degrades, where it fails, and why, with a transcript for every trial and clips of sample failures. It is the
+test that tells you whether a policy is actually four-nines, and whether it is acceptable for the real world,
+before a customer finds out.
 
-## Why Astra as the policy
-
-Astra writes the policy once: given a four-function API,
-it returns `policy.py`, which runs unchanged on every trial. LLM-written policies have no deployment
-benchmarks yet.
-
-## Two axioms
-
-1. The goal of any robotics firm is to deploy a system with four-nines reliability as cheaply as possible.
-2. Each step-up in the reliability regime — 90%, 99%, 99.9%, 99.99% — is equally difficult.
+Today it supports two tasks, peg-in-hole (UR5e, MuJoCo) and sphere-in-basket (Franka, ManiSkill / Ditto Bench),
+and five policies have runs: an Astra-written policy, an Opus-written policy, Astra driving the arm live, Opus
+driving the arm live, and MolmoAct2 (a VLA). pi0.5 is configured but its checkpoint did not download in time;
+Gemini Robotics and GR00T are placeholders. Next: more generic task categories, hardware-agnostic tasks, more
+simulators, and user-defined tasks and scenes.
 
 ## Results
+
+The local benchmark covers 2.1% of the deployment domain by volume (dx × dy × yaw; yaw folded to ±45° by the peg symmetry). The policy succeeds on 90% of local trials (n=30) and 16% of deployment trials (n=600); outside the local box it succeeds on 13% (n=586). Failures concentrate in: dx ∈ [+0.13, +0.20] m (0%, n=101); dy ∈ [-0.20, -0.13] m (0%, n=100); dy ∈ [+0.13, +0.20] m (0%, n=100); dx ∈ [-0.20, -0.13] m (1%, n=101). A benchmark that stopped at the local box would have reported 90% and shipped.
 
 ![Success-rate heatmap; dashed box = local benchmark](results/heatmap.png)
 
 *`hole_pose()` error is a modelled r³ distortion mirroring the AIC calibration radius, not a measured camera effect.*
 
-The local benchmark covers 2.1% of the deployment domain by volume (dx × dy × yaw; yaw folded to ±45° by the peg symmetry). The policy succeeds on 90% of local trials (n=30) and 16% of deployment trials (n=600); outside the local box it succeeds on 13% (n=586). Failures concentrate in: dx ∈ [+0.13, +0.20] m (0%, n=101); dy ∈ [-0.20, -0.13] m (0%, n=100); dy ∈ [+0.13, +0.20] m (0%, n=100); dx ∈ [-0.20, -0.13] m (1%, n=101). A benchmark that stopped at the local box would have reported 90% and shipped.
-
-Yaw is folded to ±45° (square-peg symmetry; 1.0% unfolded).
-
-## Policies compared
+### Policies compared
 
 | policy | family | task | n local | local success | n deploy | deploy success | outside-box success | status |
 |---|---|---|---|---|---|---|---|---|
@@ -47,8 +58,8 @@ Yaw is folded to ±45° (square-peg symmetry; 1.0% unfolded).
 | opus-live | LLM closed-loop control | Ditto Bench task 1 (DittoOddGeometry-v1) easy: pick up the 48 mm sphere and put it in the basket, Franka FR3 + Robotiq 2F-85 | 5 | 0/5 (0%) | 3 | 0/3 (0%) | 0/3 (0%) | smoke |
 | molmoact2 | VLA | Ditto Bench task 1 (DittoOddGeometry-v1) easy: pick up the 48 mm sphere and put it in the basket, Franka FR3 + Robotiq 2F-85 | 5 | 1/5 (20%) | 5 | 1/5 (20%) | 1/5 (20%) | smoke |
 
-Any `run_trial(params) -> TrialResult` plugs in; every policy gets the same map and report.
-Today two rows are full, three are smoke runs, and none are planned.
+Today two rows are full, three are smoke runs, and none are planned. The two peg-in-hole rows are full runs (30 local, 600 deployment trials); the sphere-task rows
+are smoke runs with a handful of trials each.
 
 ## Add your own policy
 
@@ -116,19 +127,18 @@ Details: `sim/README.md`.
 
 ## Limitations
 
-- One task, one policy, simulation only.
-- Coverage is unweighted box volume.
-
-**First attempt:** Astra driving a Franka live on Ditto Bench failed our go/no-go gate (0 of 6 nominal-placement trials).
-
-## Roadmap
-
-Adaptive boundary search; Astra-proposed scenarios; intrinsic-core / ReSim; real hardware.
+- Simulation only. Smoke rows have too few trials for conclusions.
+- Coverage is unweighted box volume (1.0% without yaw folding).
+- The perception error on peg-in-hole is a model, not a measured camera.
+- In the demo, uploading policies, creating tasks and the greyed simulators are not available in this build.
+- On the sphere task the demo also lists the peg-in-hole runs of astra-script and opus-script, labelled as
+  peg-in-hole data, for comparison. They are not sphere-task results.
 
 ## Credits
 
-MuJoCo + [Menagerie](https://github.com/google-deepmind/mujoco_menagerie) UR5e; Astra via OpenAI credits;
-Ditto attempt: [llms-for-robot-control](https://github.com/llong-cs/llms-for-robot-control) (MIT), ManiSkill 3, Ditto Bench.
+MuJoCo + [Menagerie](https://github.com/google-deepmind/mujoco_menagerie) UR5e;
+[llms-for-robot-control](https://github.com/llong-cs/llms-for-robot-control) (MIT), ManiSkill 3, Ditto Bench;
+Astra and Opus via API credits.
 
 ## Team
 
