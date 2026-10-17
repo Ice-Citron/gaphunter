@@ -18,7 +18,7 @@ import sys
 import numpy as np
 import pandas as pd
 
-from runner.batch import RESULTS, _save, run_batch, summary
+from runner.batch import COLUMNS, RESULTS, _save, run_batch, summary
 from runner.sample import deploy_box, sample_box
 
 SEED_BASE = 100_000  # pass-2 seeds never collide with pass-1 seeds (0..n-1)
@@ -66,9 +66,8 @@ def main() -> None:
 
     df = pd.read_csv(RESULTS / f"{a.tag}.csv")
     df["failure_mode"] = df["failure_mode"].fillna("")
-    if "pass" not in df:
-        df["pass"] = 1
-    base = df[df["pass"] == 1].reset_index(drop=True)
+    df["pass"] = df["pass"].fillna(1).astype(int) if "pass" in df else 1
+    base = df[df["pass"] == 1].reset_index(drop=True).reindex(columns=COLUMNS)  # old CSVs lack pose_error_mm
 
     params = refine_params(base, deploy_box(), a.per_cell, a.bins, a.lo, a.hi, a.min_n)
     if not params:
@@ -77,7 +76,7 @@ def main() -> None:
         return
     extra = run_batch(params, n_workers=a.workers, tag=f"{a.tag}_refine", force_fake=a.fake)
     extra["pass"] = 2
-    out = pd.concat([base, extra], ignore_index=True)
+    out = pd.concat([base, extra], ignore_index=True)[COLUMNS]
     _save(out, a.tag)
     (RESULTS / f"{a.tag}_refine.csv").unlink(missing_ok=True)  # merged; drop the crash-recovery copy
 

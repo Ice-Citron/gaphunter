@@ -22,7 +22,9 @@ from runner.sample import deploy_box, local_box, sample_box
 
 ROOT = Path(__file__).resolve().parents[1]
 RESULTS = ROOT / "results"
-COLUMNS = ["dx", "dy", "yaw", "seed", "success", "failure_mode", "n_decisions", "t_wall", "clip", "transcript"]
+# Spec columns, then pose_error_mm (TrialResult extra, MuJoCo only) and pass (1 = batch, 2 = runner.refine).
+COLUMNS = ["dx", "dy", "yaw", "seed", "success", "failure_mode", "n_decisions", "t_wall", "clip", "transcript",
+           "pose_error_mm", "pass"]
 SAVE_EVERY = 10
 
 try:
@@ -61,7 +63,8 @@ def _work(job: tuple[int, dict, bool]) -> tuple[int, dict]:
         res = {"params": params, "success": False, "failure_mode": "api_error", "n_decisions": 0,
                "t_wall": time.time() - t0, "clip": None, "transcript": None}
     row = {k: params.get(k) for k in ("dx", "dy", "yaw", "seed")}
-    row.update({k: res.get(k) for k in COLUMNS[4:]})
+    row.update({k: res.get(k) for k in COLUMNS[4:-1]})
+    row["pass"] = 1
     return i, row
 
 
