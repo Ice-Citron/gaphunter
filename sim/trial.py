@@ -1,30 +1,27 @@
-"""Stub: re-exports the fake sim so A2/A3 can import sim.trial. Replaced in Phase 1."""
+"""run_trial: one GapHunter episode. Fake backend until the Ditto wrapper lands (GAPHUNTER_SIM=ditto)."""
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 
-try:
-    from runner.fake import TrialResult, fake_run_trial as run_trial  # noqa: F401
-except ImportError:  # runner/fake.py not committed yet
-    import random
-    import time
 
-    @dataclass
-    class TrialResult:
-        params: dict
-        success: bool
-        failure_mode: str
-        n_decisions: int
-        t_wall: float
-        clip: str | None = None
-        transcript: str | None = None
+@dataclass
+class TrialResult:
+    params: dict            # echoed
+    success: bool
+    failure_mode: str       # "" | "miss" | "drop" | "timeout" | "collision" | "api_error"
+    n_decisions: int        # Astra calls made
+    t_wall: float           # seconds
+    clip: str | None = None        # results/clips/<hash>.mp4, if rendered
+    transcript: str | None = None  # results/transcripts/<hash>.json
 
-    def run_trial(params: dict, render: bool = False) -> TrialResult:
-        t0 = time.time()
-        rng = random.Random(hash((params.get("dx"), params.get("dy"), params.get("yaw"), params.get("seed"))))
-        ok = abs(params["dx"]) < 0.08 and abs(params["dy"]) < 0.08 and abs(params["yaw"]) < 30
-        if rng.random() < 0.05:
-            ok = not ok
-        return TrialResult(dict(params), ok, "" if ok else "miss", rng.randint(3, 15), time.time() - t0)
+
+def run_trial(params: dict, render: bool = False) -> TrialResult:
+    if os.environ.get("GAPHUNTER_SIM", "fake") == "ditto":
+        from sim.ditto_trial import run_ditto_trial
+        return run_ditto_trial(params, render=render)
+    from runner.fake import fake_run_trial  # lazy: runner.fake imports TrialResult from here
+    return fake_run_trial(params, render=render)
+
 
 __all__ = ["TrialResult", "run_trial"]
