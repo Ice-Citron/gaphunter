@@ -4,8 +4,8 @@
 
 ![Success-rate heatmap; dashed box = local benchmark](results/heatmap.png)
 
-*`hole_pose()` error is a modelled r³ distortion mirroring the AIC calibration radius, not a measured
-camera effect (0.3 mm at 5 cm, 15 mm at 20 cm).*
+*`hole_pose()` error is a modelled r³ distortion (0.2 mm at 5 cm, 12.8 mm at 20 cm, plus per-trial noise)
+mirroring the AIC calibration radius, not a measured camera effect.*
 
 ## Problem
 
