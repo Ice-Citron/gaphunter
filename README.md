@@ -42,7 +42,7 @@ simulators, and user-defined tasks and scenes.
 
 ## Results
 
-The local benchmark covers 2.1% of the deployment domain by volume (dx × dy × yaw; yaw folded to ±45° by the peg symmetry). The policy succeeds on 90% of local trials (n=30) and 16% of deployment trials (n=600); outside the local box it succeeds on 13% (n=586). Failures concentrate in: dx ∈ [+0.13, +0.20] m (0%, n=101); dy ∈ [-0.20, -0.13] m (0%, n=100); dy ∈ [+0.13, +0.20] m (0%, n=100); dx ∈ [-0.20, -0.13] m (1%, n=101). A benchmark that stopped at the local box would have reported 90% and shipped.
+{gap_paragraph}
 
 ![Success-rate heatmap; dashed box = local benchmark](results/heatmap.png)
 
@@ -50,15 +50,9 @@ The local benchmark covers 2.1% of the deployment domain by volume (dx × dy × 
 
 ### Policies compared
 
-| policy | family | task | n local | local success | n deploy | deploy success | outside-box success | status |
-|---|---|---|---|---|---|---|---|---|
-| astra-script | LLM-written policy code | peg-in-hole, UR5e | 30 | 90% | 600 | 16% | 13% | full |
-| astra-live | LLM closed-loop control | Ditto Bench task 1 (DittoOddGeometry-v1) easy: pick up the 48 mm sphere and put it in the basket, Franka FR3 + Robotiq 2F-85 | 11 | 0/11 (0%) | 3 | 0/3 (0%) | 0/3 (0%) | smoke |
-| opus-script | LLM-written policy code | peg-in-hole, UR5e | 30 | 100% | 600 | 22% | 21% | full |
-| opus-live | LLM closed-loop control | Ditto Bench task 1 (DittoOddGeometry-v1) easy: pick up the 48 mm sphere and put it in the basket, Franka FR3 + Robotiq 2F-85 | 5 | 0/5 (0%) | 3 | 0/3 (0%) | 0/3 (0%) | smoke |
-| molmoact2 | VLA | Ditto Bench task 1 (DittoOddGeometry-v1) easy: pick up the 48 mm sphere and put it in the basket, Franka FR3 + Robotiq 2F-85 | 5 | 1/5 (20%) | 5 | 1/5 (20%) | 1/5 (20%) | smoke |
+{policy_table}
 
-Today two rows are full, three are smoke runs, and none are planned. The two peg-in-hole rows are full runs (30 local, 600 deployment trials); the sphere-task rows
+{policy_status} The two peg-in-hole rows are full runs (30 local, 600 deployment trials); the sphere-task rows
 are smoke runs with a handful of trials each.
 
 ## Add your own policy
@@ -110,8 +104,8 @@ Run (about 1 minute):
 
 ```bash
 export GAPHUNTER_SIM=mujoco
-.venv/bin/python -m runner.batch  --box local  --n 30 --tag local  --workers 8
-.venv/bin/python -m runner.batch  --box deploy --n 600 --tag deploy --workers 8 --render-failures 4
+.venv/bin/python -m runner.batch  --box local  --n {rows_local} --tag local  --workers 8
+.venv/bin/python -m runner.batch  --box deploy --n {rows_deploy} --tag deploy --workers 8 --render-failures 4
 .venv/bin/python -m runner.refine --tag deploy --per-cell 10
 .venv/bin/python -m analysis.fill_docs
 .venv/bin/streamlit run app/streamlit_app.py
@@ -128,7 +122,7 @@ Details: `sim/README.md`.
 ## Limitations
 
 - Simulation only. Smoke rows have too few trials for conclusions.
-- Coverage is unweighted box volume (1.0% without yaw folding).
+- Coverage is unweighted box volume ({coverage_all} without yaw folding).
 - The perception error on peg-in-hole is a model, not a measured camera.
 - In the demo, uploading policies, creating tasks and the greyed simulators are not available in this build.
 - On the sphere task the demo also lists the peg-in-hole runs of astra-script and opus-script, labelled as
