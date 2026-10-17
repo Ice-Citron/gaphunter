@@ -87,7 +87,7 @@ Details: `sim/README.md`.
 
 ## Credits
 
-MuJoCo; UR5e model from [MuJoCo Menagerie](https://github.com/google-deepmind/mujoco_menagerie) (BSD-3-Clause, ROS-Industrial); Astra (`gpt-6-astra`) via OpenAI credits. Ditto attempt:
+MuJoCo + [MuJoCo Menagerie](https://github.com/google-deepmind/mujoco_menagerie) UR5e; Astra (`gpt-6-astra`) via OpenAI credits. Ditto attempt:
 [llms-for-robot-control](https://github.com/llong-cs/llms-for-robot-control) (MIT), ManiSkill 3, Ditto Bench,
 MolmoAct2 assets.
 
