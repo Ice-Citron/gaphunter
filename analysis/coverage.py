@@ -94,10 +94,20 @@ def gap_regions(deploy_df, local_box, deploy_box, bins=6, max_success=0.5, min_n
     return sorted(out, key=lambda g: (g["success"], -g["n"]))
 
 
+def _drop_infra(df: pd.DataFrame) -> pd.DataFrame:
+    """api_error rows are infrastructure failures, not policy failures."""
+    if "failure_mode" not in df:
+        return df
+    return df[df["failure_mode"].fillna("").astype(str) != "api_error"]
+
+
 def coverage_report(local_df, deploy_df, local_box=None, deploy_box=None) -> dict:
     if local_box is None or deploy_box is None:
         lb, db = default_boxes()
         local_box, deploy_box = local_box or lb, deploy_box or db
+    n_infra = len(local_df) + len(deploy_df)
+    local_df, deploy_df = _drop_infra(local_df), _drop_infra(deploy_df)
+    n_infra -= len(local_df) + len(deploy_df)
 
     cov = _volume(local_box) / _volume(deploy_box)
     local = float(_success(local_df).mean()) if len(local_df) else float("nan")
@@ -122,6 +132,8 @@ def coverage_report(local_df, deploy_df, local_box=None, deploy_box=None) -> dic
         f"{_pct(outside)} (n={int(outside_mask.sum())}). Failures concentrate in: {where}. "
         f"A benchmark that stopped at the local box would have reported {_pct(local)} and shipped."
     )
+    if n_infra:
+        text += f" ({n_infra} trials with API errors are excluded.)"
     return {
         "coverage_fraction": cov,
         "local_success": local,
@@ -130,6 +142,7 @@ def coverage_report(local_df, deploy_df, local_box=None, deploy_box=None) -> dic
         "n_local": len(local_df),
         "n_deploy": len(deploy_df),
         "n_outside": int(outside_mask.sum()),
+        "n_api_error": n_infra,
         "gap_regions": gaps,
         "text": text,
     }
@@ -152,6 +165,7 @@ def heatmap(df, x="dx", y="dy", local_box=None, path="results/heatmap.png", depl
     local_box = local_box or lb
     deploy_box = deploy_box or db
     cmap = _cmap()
+    df = _drop_infra(df)
     succ = _success(df).to_numpy()
 
     fig, (ax, ax2) = plt.subplots(1, 2, figsize=(1600 / 150, 800 / 150), dpi=150,
