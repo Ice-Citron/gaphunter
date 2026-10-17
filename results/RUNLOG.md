@@ -25,6 +25,11 @@ total wall time 51.3 s (mean 0.34 s/trial)
 clips           4
 ```
 Only one failure mode (`miss`) appeared; no `timeout` (300-call cap) was hit. The spec's ">= 2 failure modes" is not met; not padded.
+Why one mode (Agent A, 1024-point Sobol scan of the full deploy box, policy v1): 178 success / 846 miss, zero
+collision / timeout / api_error. Peak contact force 29 N (policy retracts at 15 N; collision limit 150 N); peak 278
+calls (cap 300). Every miss is lateral: the camera estimate of the hole (transcript steps[0].result) is off by more
+than the ±1.8 mm search. The 4 clipped failures had position errors of 17.6 / 9.6 / 7.5 / 3.6 mm, yaw errors < 2.6°.
+Reading: a perception gap; the policy fails safely rather than forcing contact.
 Failure clips (rows 0, 1, 3, 4; all `miss`): see the `clip` column of deploy.csv.
 
 ## Fake-sim baseline (runner.fake: |dx|<0.12, |dy|<0.12, |yaw|<45, 5% flips; not real data)
