@@ -322,27 +322,29 @@ tile(t1, "local success (in the benchmark)", rep["local_success"], rep["n_local"
 tile(t2, "deployment success", rep["deploy_success"], rep["n_deploy"], RED)
 tile(t3, "outside the local box", rep["outside_local_success"], rep["n_outside"], RED)
 
-left, right = st.columns([2, 1], gap="medium")
+hm_path = RESULTS / ("heatmap.png" if source == "real" else "heatmap_fake.png")
+all_df = pd.concat([local_df, deploy_df], ignore_index=True)
+try:
+    png = _heatmap_png(all_df, str(hm_path), _mtime(ROOT / "analysis" / "coverage.py"), lb, db) if len(all_df) else None
+except Exception as e:
+    png = None
+    st.caption(f"Heatmap failed: {e}")
+if png:
+    st.image(png, width="stretch")
+    st.caption("hole_pose() error is a modelled r³ distortion mirroring the AIC calibration radius, "
+               "not a measured camera effect.")
+else:
+    placeholder("Heatmap appears once results/local.csv and results/deploy.csv exist.")
+
+left, right = st.columns([3, 1], gap="medium")
 with left:
-    hm_path = RESULTS / ("heatmap.png" if source == "real" else "heatmap_fake.png")
-    all_df = pd.concat([local_df, deploy_df], ignore_index=True)
-    try:
-        png = _heatmap_png(all_df, str(hm_path), _mtime(ROOT / "analysis" / "coverage.py"), lb, db) if len(all_df) else None
-    except Exception as e:
-        png = None
-        st.caption(f"Heatmap failed: {e}")
-    if png:
-        st.image(png, width="stretch")
-        st.caption("hole_pose() error is a modelled r³ distortion mirroring the AIC calibration radius, "
-                   "not a measured camera effect.")
-    else:
-        placeholder("Heatmap appears once results/local.csv and results/deploy.csv exist.")
-with right:
-    st.subheader("Gap report")
-    st.markdown(f'<div class="gh-report">{html.escape(rep["text"])}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="gh-report"><b>Gap report.</b> {html.escape(rep["text"])}</div>',
+                unsafe_allow_html=True)
     st.markdown(f'<p class="gh-src">Data: {source} · coverage = box {" × ".join(rep["coverage_params"])}, '
-                f'local ∕ deployment ({rep["coverage_fraction_all_params"]:.1%} without yaw folding).</p>', unsafe_allow_html=True)
-    if st.button("Re-run coverage (10 trials, deployment box)", type="primary"):
+                f'local ∕ deployment ({rep["coverage_fraction_all_params"]:.1%} without yaw folding) · '
+                f'rates from the uniform pass only.</p>', unsafe_allow_html=True)
+with right:
+    if st.button("Re-run coverage", type="primary", help="Runs 10 new trials sampled over the deployment box."):
         try:
             new = rerun_coverage(10)
             st.session_state["extra"] = pd.concat(

@@ -16,7 +16,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from analysis.coverage import _range, coverage_report, default_boxes
+from analysis.coverage import _range, coverage_report, default_boxes, first_pass
 
 ROOT = Path(__file__).resolve().parents[1]
 DOCS = ("README.md", "VIDEO_SCRIPT.md")
@@ -77,8 +77,8 @@ def values(local_csv: Path, deploy_csv: Path) -> tuple[dict, list[str]]:
         "{n_local}": str(r["n_local"]),
         "{n_deploy}": str(r["n_deploy"]),
         "{n_outside}": str(r["n_outside"]),
-        "{rows_local}": str(len(ldf)),
-        "{rows_deploy}": str(len(ddf)),
+        "{rows_local}": str(len(first_pass(ldf))),
+        "{rows_deploy}": str(len(first_pass(ddf))),  # the batch size; refine adds pass-2 rows
         "{coverage}": f"{r['coverage_fraction']:.1%}",
         "{coverage_all}": f"{r['coverage_fraction_all_params']:.1%}",
         "{local_box}": box_text(lb),

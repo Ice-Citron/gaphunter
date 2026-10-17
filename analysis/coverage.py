@@ -12,6 +12,8 @@ PARAMS = ("dx", "dy", "yaw")
 UNITS = {"dx": "m", "dy": "m", "yaw": "deg", "r": "m"}
 # Parameters that change the task. The square peg makes yaw matter.
 ACTIVE_PARAMS = ("dx", "dy", "yaw")
+# Lateral search range of the Astra-written policy v1 (0.6 mm grid, 3 rings): results/policies/v1.py.
+SEARCH_RANGE_MM = 1.8
 # The square peg looks the same every 90°, so yaw is folded into [-45, 45). None disables folding.
 YAW_PERIOD = 90.0
 
@@ -122,6 +124,13 @@ def gap_regions(deploy_df, local_box, deploy_box, bins=6, max_success=0.5, min_n
     return sorted(out, key=lambda g: (g["success"], -g["n"]))
 
 
+def first_pass(df: pd.DataFrame) -> pd.DataFrame:
+    """Rows from the uniform Sobol pass. runner.refine adds pass=2 rows in uncertain cells; they are not
+    uniform over the box, so rates over the box use pass 1 only. A missing `pass` column or value
+    (e.g. Re-run rows) counts as pass 1."""
+    return df[df["pass"].fillna(1) == 1] if "pass" in df else df
+
+
 def _drop_infra(df: pd.DataFrame) -> pd.DataFrame:
     """api_error rows are infrastructure failures, not policy failures."""
     if "failure_mode" not in df:
@@ -134,6 +143,7 @@ def coverage_report(local_df, deploy_df, local_box=None, deploy_box=None, params
     if local_box is None or deploy_box is None:
         lb, db = default_boxes()
         local_box, deploy_box = local_box or lb, deploy_box or db
+    local_df, deploy_df = first_pass(local_df), first_pass(deploy_df)
     n_infra = len(local_df) + len(deploy_df)
     local_df, deploy_df = _drop_infra(local_df), _drop_infra(deploy_df)
     n_infra -= len(local_df) + len(deploy_df)
@@ -195,10 +205,58 @@ def _cmap():
     return LinearSegmentedColormap.from_list("gap", ["#d64545", "#6b6f78", "#2fb36a"])
 
 
+def _error_panel(ax, df, succ, cmap, col, search_mm, per_side=4) -> None:
+    """Success rate vs perception error on a log axis, bins split at the search range."""
+    import matplotlib.pyplot as plt
+    ax.set_title("Success rate by perception error", color=INK, fontsize=12, loc="left")
+    ax.set_xlabel("hole_pose() error (mm, log scale)", color=INK, fontsize=10)
+    ax.set_ylim(0, 1.2)
+    ax.set_yticks([0, 0.5, 1])
+    ax.set_yticklabels(["0%", "50%", "100%"])
+    ax.grid(axis="y", color="#30343c", linewidth=0.6)
+    ax.set_axisbelow(True)
+    err = pd.to_numeric(df[col], errors="coerce").to_numpy() if col in df else np.array([])
+    ok = np.isfinite(err)
+    if ok.sum() < 5:
+        ax.set_xticks([])
+        ax.text(0.5, 0.5, f"waiting for a `{col}` column", transform=ax.transAxes, ha="center",
+                va="center", color=MUTED, fontsize=10)
+        return
+    err, s = np.clip(err[ok], 1e-3, None), succ[ok]
+    lo, hi = max(err.min(), 0.02), err.max() * 1.001
+    if lo < search_mm < hi:
+        edges = np.concatenate([np.geomspace(lo, search_mm, per_side + 1),
+                                np.geomspace(search_mm, hi, per_side + 1)[1:]])
+    else:
+        edges = np.geomspace(lo, hi, 2 * per_side + 1)
+    idx = np.clip(np.digitize(err, edges) - 1, 0, len(edges) - 2)
+    cnt = np.bincount(idx, minlength=len(edges) - 1)
+    k = np.bincount(idx, weights=s, minlength=len(edges) - 1)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        rate = np.where(cnt > 0, k / cnt, 0.0)
+    left, right = edges[:-1] * 1.04, edges[1:] / 1.04  # surface gap between bars on the log axis
+    ax.bar(left, rate, width=right - left, align="edge", color=[cmap(v) for v in rate],
+           edgecolor=BG, linewidth=0)
+    for l_, r_, v, c in zip(left, right, rate, cnt):
+        if c:
+            ax.text(np.sqrt(l_ * r_), v + 0.02, f"{v:.0%}\nn={c}", ha="center", va="bottom", fontsize=8,
+                    color=INK)
+    ax.set_xscale("log")
+    ax.set_xlim(edges[0], edges[-1])
+    ticks = [t for t in (0.03, 0.1, 0.3, 1, 3, 10, 30) if edges[0] <= t <= edges[-1]]
+    ax.set_xticks(ticks, [f"{t:g}" for t in ticks])
+    ax.xaxis.set_minor_formatter(plt.NullFormatter())
+    ax.axvline(search_mm, color="white", linestyle=(0, (4, 3)), linewidth=1.8)
+    ax.text(search_mm * 1.06, 1.16, f"policy search range ({search_mm:g} mm)", color="white", fontsize=9,
+            ha="left", va="top")
+
+
 def heatmap(df, x="dx", y="dy", local_box=None, path="results/heatmap.png", deploy_box=None,
-            bins=8, marginal="dy", marginal_bins=7) -> str:
-    """2-D success grid over (x, y) plus a 1-D success marginal over `marginal`.
-    Any of dx, dy, yaw works for x, y or marginal (yaw matters for `medium`, not `easy`)."""
+            bins=8, marginal="dy", marginal_bins=7, error_col="pose_error_mm",
+            search_mm=SEARCH_RANGE_MM) -> str:
+    """2-D success grid over (x, y), a 1-D success marginal over `marginal`, and success vs the
+    perception error `error_col` with the policy's search range marked. Uses all rows (both passes):
+    each bin's rate is conditional on the bin, so the refinement pass sharpens it without biasing it."""
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -220,10 +278,10 @@ def heatmap(df, x="dx", y="dy", local_box=None, path="results/heatmap.png", depl
     local_box = {**local_box, "r": (0.0, min(-lxl, lxh, -lyl, lyh))}
     succ = _success(df).to_numpy()
 
-    fig, (ax, ax2) = plt.subplots(1, 2, figsize=(1600 / 150, 800 / 150), dpi=150,
-                                  gridspec_kw={"width_ratios": [1.6, 1]})
+    fig, (ax, ax2, ax3) = plt.subplots(1, 3, figsize=(2400 / 150, 800 / 150), dpi=150,
+                                       gridspec_kw={"width_ratios": [1.55, 1, 1]})
     fig.patch.set_facecolor(BG)
-    for a in (ax, ax2):
+    for a in (ax, ax2, ax3):
         a.set_facecolor(BG)
         a.tick_params(colors=MUTED, labelsize=9)
         for s in a.spines.values():
@@ -297,6 +355,8 @@ def heatmap(df, x="dx", y="dy", local_box=None, path="results/heatmap.png", depl
                   color=INK, fontsize=12, loc="left")
     ax2.grid(axis="y", color="#30343c", linewidth=0.6)
     ax2.set_axisbelow(True)
+
+    _error_panel(ax3, df, succ, cmap, error_col, search_mm)
 
     fig.tight_layout()
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)

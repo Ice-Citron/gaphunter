@@ -45,8 +45,10 @@ Yaw is folded to ±45° because the square peg has 90° symmetry ({coverage_all}
 ## How to reproduce
 
 ```bash
-.venv/bin/python -m runner.batch --box local  --n {rows_local} --tag local
-.venv/bin/python -m runner.batch --box deploy --n {rows_deploy} --tag deploy --render-failures 4
+export GAPHUNTER_SIM=mujoco
+.venv/bin/python -m runner.batch  --box local  --n {rows_local} --tag local  --workers 8
+.venv/bin/python -m runner.batch  --box deploy --n {rows_deploy} --tag deploy --workers 8 --render-failures 4
+.venv/bin/python -m runner.refine --tag deploy --per-cell 10
 .venv/bin/python -m analysis.fill_docs
 .venv/bin/streamlit run app/streamlit_app.py
 ```
