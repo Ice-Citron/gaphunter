@@ -38,14 +38,15 @@ POLICIES = [
      "task": DITTO_TASK, "sim": "ditto", "local_box": DITTO_LOCAL_BOX,
      "notes": "Astra drives the arm live, one decision per step, 30 Hz control, 450-step budget, "
               "25-decision cap. Nominal placement only; local-only row."},
+    {"policy": "opus-script", "family": "LLM-written policy code", "model": "claude-opus-5-5",
+     "task": "peg-in-hole, UR5e", "sim": "mujoco", "local_box": local_box(),
+     "notes": "Opus writes policy.py once (results/policies/opus_v1.py) from the same prompt and API docstrings "
+              "as Astra; code unedited."},
+    {"policy": "opus-live", "family": "LLM closed-loop control", "model": "claude-opus-5-5",
+     "task": DITTO_TASK, "sim": "ditto", "local_box": DITTO_LOCAL_BOX,
+     "notes": "Opus drives the arm live, one decision per step, same harness and caps as astra-live."},
     {"policy": "molmoact2", "family": "VLA", "model": "MolmoAct2-DROID", "task": DITTO_TASK, "sim": "ditto",
      "local_box": DITTO_LOCAL_BOX, "notes": "Native MolmoAct2-DROID checkpoint, 15 Hz, 450 steps."},
-    {"policy": "pi05", "family": "VLA", "model": "pi0.5-DROID", "task": DITTO_TASK, "sim": "ditto",
-     "local_box": DITTO_LOCAL_BOX, "notes": "Native pi0.5-DROID, 450 steps."},
-    {"policy": "gemini-robotics", "family": "VLA", "model": "Gemini Robotics", "task": None, "sim": None,
-     "notes": "planned"},
-    {"policy": "gr00t", "family": "VLA", "model": "GR00T", "task": None, "sim": None,
-     "notes": "planned"},
 ]
 KEYS = ["policy", "family", "model", "task", "sim", "status", "n_local", "local_success", "n_deploy",
         "deploy_success", "outside_success", "local_csv", "deploy_csv", "notes"]
