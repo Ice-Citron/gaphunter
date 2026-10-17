@@ -34,19 +34,21 @@ st.markdown(
 <style>
 [data-testid="stSidebar"], [data-testid="collapsedControl"] {display: none;}
 .block-container {padding-top: 1rem; padding-bottom: 1rem; max-width: 1280px;}
-h1 {margin-bottom: 0 !important;}
+h1 {margin-bottom: 0 !important; font-size: 2.3rem !important; padding-top: 0 !important;}
 p.gh-sub, .stMarkdown p.gh-sub {color: #e6e6e6; font-size: 1.25rem !important; margin: 0 0 .2rem 0;}
 p.gh-back, .stMarkdown p.gh-back {color: #c3c7cf; font-size: 1.1rem !important; margin-bottom: .6rem;}
 .gh-tile {background: #1a1d24; border-radius: 8px; padding: .7rem 1rem;}
 .gh-tile .lbl {color: #8b8f98; font-size: .8rem; text-transform: uppercase; letter-spacing: .04em;}
 .gh-tile .val {font-size: 2.6rem; font-weight: 700; line-height: 1.1;}
 .gh-tile .n {color: #8b8f98; font-size: .8rem;}
-.gh-ph {background: #2a2d34; color: #8b8f98; border-radius: 8px; height: 190px;
+.gh-ph {background: #2a2d34; color: #8b8f98; border-radius: 8px; height: 170px;
         display: flex; align-items: center; justify-content: center; text-align: center; padding: 1rem;}
 .gh-report {font-size: 1rem; line-height: 1.55;}
 .gh-src {color: #8b8f98; font-size: .75rem;}
 .gh-foot {color: #8b8f98; font-size: .85rem; border-top: 1px solid #30343c; padding-top: .6rem; margin-top: .8rem;}
-video {max-height: 190px;}
+video {max-height: 170px;}
+.gh-badge {color: #0e1117; font-weight: 600; border-radius: 4px; padding: 0 .35rem; font-size: .75rem;}
+.gh-cap {color: #8b8f98; font-size: .8rem; line-height: 1.5;}
 .gh-head {color: #e6e6e6; font-size: .95rem; border-left: 3px solid #d64545; padding: .2rem .6rem; margin: .3rem 0 .5rem 0;}
 .gh-quote {color: #e6e6e6; border-left: 3px solid #6b6f78; margin: 0 0 .6rem 0; padding: .2rem .7rem;}
 .gh-quote span {color: #8b8f98; font-size: .8rem;}
@@ -57,6 +59,14 @@ h3 {padding: .4rem 0 .3rem 0 !important;}
 )
 
 GREEN, RED, GREY = "#2fb36a", "#d64545", "#8b8f98"
+# One fixed colour per failure mode (hex for badges, Streamlit colour name for radio labels).
+MODE_COLOR = {"miss": ("#d64545", "red"), "jam": ("#e0a030", "orange"), "collision": ("#a874d8", "violet"),
+              "timeout": ("#8b8f98", "gray"), "api_error": ("#5b5f68", "gray"), "": (GREEN, "green")}
+
+
+def _badge(mode: str) -> str:
+    hexc = MODE_COLOR.get(mode, (GREY, "gray"))[0]
+    return f'<span class="gh-badge" style="background:{hexc}">{html.escape(mode or "success")}</span>'
 
 
 def placeholder(msg: str) -> None:
@@ -163,9 +173,9 @@ def _clip_caption(clip: Path) -> str | None:
     if not isinstance(d, dict) or "params" not in d:
         return None
     p, o = d["params"], d.get("outcome") or {}
-    res = "success" if o.get("success") else (o.get("failure_mode") or "failure")
+    mode = "" if o.get("success") else (o.get("failure_mode") or "failure")
     extra = f" · depth {o['depth_mm']:.1f} mm · lateral {o['lateral_mm']:.1f} mm" if "lateral_mm" in o else ""
-    return (f"dx={p['dx']:+.3f} m · dy={p['dy']:+.3f} m · yaw={p['yaw']:+.0f}° · {res}{extra}"
+    return (f"{_badge(mode)} dx={p['dx']:+.3f} m · dy={p['dy']:+.3f} m · yaw={p['yaw']:+.0f}°{extra}"
             f" · {o.get('api_calls', len(d.get('steps', [])))} API calls")
 
 
@@ -179,11 +189,23 @@ def show_clip(row: dict | None, path_override: str | None, empty_msg: str) -> No
     else:
         st.video(str(clip))
     cap = _clip_caption(clip)
+    if not cap and row:
+        mode = row.get("failure_mode")
+        mode = "" if pd.isna(mode) else str(mode)
+        cap = (f"{_badge(mode)} dx={row['dx']:+.3f} m · dy={row['dy']:+.3f} m · yaw={row['yaw']:+.0f}° · "
+               f"{int(row.get('n_decisions', 0))} API calls")
     if cap:
-        st.caption(cap)
-    elif row and not path_override:
-        st.caption(f"dx={row['dx']:+.3f} m · dy={row['dy']:+.3f} m · yaw={row['yaw']:+.0f}° · "
-                   f"{row.get('failure_mode') or 'success'} · {int(row.get('n_decisions', 0))} API calls")
+        st.markdown(f'<p class="gh-cap">{cap}</p>', unsafe_allow_html=True)
+
+
+def failure_clips(df: pd.DataFrame, featured: str | None) -> list[dict]:
+    """Failed rows with an existing clip; the featured clip first."""
+    if df.empty or "clip" not in df:
+        return []
+    succ = df["success"].astype(str).str.lower().isin(("true", "1"))
+    rows = [r.to_dict() for _, r in df[~succ].iterrows() if _resolve(r.get("clip"))]
+    rows.sort(key=lambda r: not (featured and str(r["clip"]).endswith(Path(featured).name)))
+    return rows
 
 
 def _trim(v, limit=1500):
@@ -311,6 +333,8 @@ with left:
         st.caption(f"Heatmap failed: {e}")
     if png:
         st.image(png, width="stretch")
+        st.caption("hole_pose() error is a modelled r³ distortion mirroring the AIC calibration radius, "
+                   "not a measured camera effect.")
     else:
         placeholder("Heatmap appears once results/local.csv and results/deploy.csv exist.")
 with right:
@@ -337,18 +361,32 @@ with c1:
     show_clip(ok_row, feat.get("success_clip"), "Success clip renders here once Agent 1 records one.")
 with c2:
     st.subheader("Outside the benchmark")
-    bad_row = pick_clip(deploy_df, False, lb)
-    show_clip(bad_row, feat.get("failure_clip"), "Failure clip renders here once Agent 1 records one.")
+    fails = failure_clips(deploy_df, feat.get("failure_clip"))
+    if len(fails) > 1:
+        def _label(i):
+            m = str(fails[i].get("failure_mode") or "failure")
+            return f":{MODE_COLOR.get(m, (GREY, 'gray'))[1]}[● {m}] {i + 1}"
+        pick = st.radio("Failure clip", range(len(fails)), format_func=_label, horizontal=True,
+                        label_visibility="collapsed")
+        bad_row = fails[pick]
+        show_clip(bad_row, None, "")
+    else:
+        bad_row = fails[0] if fails else pick_clip(deploy_df, False, lb)
+        show_clip(bad_row, None if fails else feat.get("failure_clip"),
+                  "Failure clip renders here once Agent 1 records one.")
+is_featured = bool(feat.get("failure_clip")) and (
+    bad_row is None or str(bad_row.get("clip", "")).endswith(Path(feat["failure_clip"]).name))
 with c3:
     st.subheader("Why it failed")
-    if feat.get("headline"):
+    if feat.get("headline") and is_featured:
         st.markdown(f'<div class="gh-head">{html.escape(feat["headline"])}</div>', unsafe_allow_html=True)
     with st.expander("What Astra was thinking"):
         if feat.get("quote"):
             st.markdown(f'<blockquote class="gh-quote">“{html.escape(feat["quote"])}”'
                         f'<br><span>— Astra, in the reply that wrote policy.py</span></blockquote>',
                         unsafe_allow_html=True)
-        show_transcript(feat.get("failure_transcript") or (bad_row or {}).get("transcript"))
+        show_transcript((feat.get("failure_transcript") if is_featured else None)
+                        or (bad_row or {}).get("transcript"))
 
 st.markdown(
     '<div class="gh-foot">'

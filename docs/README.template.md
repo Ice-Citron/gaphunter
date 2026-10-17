@@ -4,6 +4,9 @@
 
 ![Success-rate heatmap; dashed box = local benchmark](results/heatmap.png)
 
+*`hole_pose()` error is a modelled r³ distortion mirroring the AIC calibration radius, not a measured
+camera effect (0.3 mm at 5 cm, 15 mm at 20 cm).*
+
 ## Problem
 
 In Intrinsic AIC 2026 our policy scored 141 on our local benchmark and 89 on the hidden evaluation.
@@ -55,8 +58,7 @@ Setup: `sim/README.md`.
 - One task, one policy, simulation only.
 - n = {n_deploy}, so heatmap cells are noisy.
 - Coverage is unweighted box volume.
-- `hole_pose()` is a modelled camera calibrated on the local region. Its radial-distortion error grows
-  as r³ (0.3 mm at 5 cm, 15 mm at 20 cm), a model we chose to mirror AIC.
+- The perception error is our model, chosen to mirror AIC (see the heatmap caption).
 
 **First attempt:** Astra driving a Franka step by step on Ditto Bench's sphere-in-basket task failed
 our gate (0 of 6), so we switched to this fallback.
