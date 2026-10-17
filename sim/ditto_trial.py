@@ -14,6 +14,7 @@ import hashlib
 import json
 import os
 import shutil
+import signal
 import subprocess
 import sys
 import time
@@ -26,6 +27,7 @@ RESULTS = ROOT / "results"
 RUNS = RESULTS / "runs"
 DECISION_CAP = int(os.environ.get("GAPHUNTER_DECISION_CAP", "15"))
 CAP_REASON = "gaphunter_decision_cap"
+TRIAL_TIMEOUT_S = float(os.environ.get("GAPHUNTER_TRIAL_TIMEOUT_S", "240"))
 CLIP_MAX_SIDE, CLIP_MAX_SECONDS = 320, 10.0
 
 
@@ -62,13 +64,23 @@ def _run_in_subprocess(params, render):
     cmd = [str(framework_python()), "-B", "-m", "sim.ditto_trial", json.dumps(clean)]
     if render:
         cmd.append("--render")
-    proc = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True)
-    lines = [line for line in proc.stdout.splitlines() if line.startswith("GAPHUNTER_RESULT ")]
-    if proc.returncode != 0 or not lines:
+    # Own process group, so a timeout also kills the evaluator's SAPIEN worker.
+    proc = subprocess.Popen(cmd, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                            text=True, start_new_session=True)
+    try:
+        stdout, stderr = proc.communicate(timeout=TRIAL_TIMEOUT_S)
+        mode = "api_error"  # crash or no result line; the spec has no generic "error" mode
+    except subprocess.TimeoutExpired:
+        os.killpg(proc.pid, signal.SIGKILL)
+        stdout, stderr = proc.communicate()
+        mode = "timeout"
+    lines = [line for line in stdout.splitlines() if line.startswith("GAPHUNTER_RESULT ")]
+    if mode == "timeout" or proc.returncode != 0 or not lines:
         log = RESULTS / "transcripts" / f"{param_hash(params)}.stderr.txt"
         log.parent.mkdir(parents=True, exist_ok=True)
-        log.write_text(proc.stdout[-20000:] + "\n---- stderr ----\n" + proc.stderr[-20000:])
-        return TrialResult(dict(params), False, "api_error", 0, time.time() - t0, None, None)
+        log.write_text(f"mode={mode} returncode={proc.returncode}\n" + stdout[-20000:]
+                       + "\n---- stderr ----\n" + stderr[-20000:])
+        return TrialResult(dict(params), False, mode, 0, time.time() - t0, None, None)
     return TrialResult(**json.loads(lines[-1].removeprefix("GAPHUNTER_RESULT ")))
 
 
