@@ -10,6 +10,8 @@ import pandas as pd
 
 PARAMS = ("dx", "dy", "yaw")
 UNITS = {"dx": "m", "dy": "m", "yaw": "deg"}
+# Parameters that change the task. Yaw has no effect on the `easy` sphere; use PARAMS for `medium`.
+ACTIVE_PARAMS = ("dx", "dy")
 
 # Spec defaults, used only when runner.sample is not importable.
 _LOCAL_BOX = {"dx": (-0.05, 0.05), "dy": (-0.05, 0.05), "yaw": (-15.0, 15.0)}
@@ -40,17 +42,17 @@ def _range(box: dict, p: str) -> tuple[float, float]:
     return float(lo), float(hi)
 
 
-def _volume(box: dict) -> float:
+def _volume(box: dict, params=PARAMS) -> float:
     v = 1.0
-    for p in PARAMS:
+    for p in params:
         lo, hi = _range(box, p)
         v *= hi - lo
     return v
 
 
-def _inside(df: pd.DataFrame, box: dict) -> pd.Series:
+def _inside(df: pd.DataFrame, box: dict, params=PARAMS) -> pd.Series:
     m = pd.Series(True, index=df.index)
-    for p in PARAMS:
+    for p in params:
         lo, hi = _range(box, p)
         m &= df[p].between(lo, hi)
     return m
@@ -71,10 +73,11 @@ def _pct(x: float) -> str:
     return "n/a" if x is None or np.isnan(x) else f"{x:.0%}"
 
 
-def gap_regions(deploy_df, local_box, deploy_box, bins=6, max_success=0.5, min_n=5) -> list[dict]:
+def gap_regions(deploy_df, local_box, deploy_box, bins=6, max_success=0.5, min_n=5,
+                params=PARAMS) -> list[dict]:
     succ = _success(deploy_df)
     out = []
-    for p in PARAMS:
+    for p in params:
         dlo, dhi = _range(deploy_box, p)
         llo, lhi = _range(local_box, p)
         edges = np.linspace(dlo, dhi, bins + 1)
@@ -101,7 +104,8 @@ def _drop_infra(df: pd.DataFrame) -> pd.DataFrame:
     return df[df["failure_mode"].fillna("").astype(str) != "api_error"]
 
 
-def coverage_report(local_df, deploy_df, local_box=None, deploy_box=None) -> dict:
+def coverage_report(local_df, deploy_df, local_box=None, deploy_box=None, params=ACTIVE_PARAMS) -> dict:
+    """Coverage, "outside the local box" and gap regions use only `params`, the ones that change the task."""
     if local_box is None or deploy_box is None:
         lb, db = default_boxes()
         local_box, deploy_box = local_box or lb, deploy_box or db
@@ -109,12 +113,13 @@ def coverage_report(local_df, deploy_df, local_box=None, deploy_box=None) -> dic
     local_df, deploy_df = _drop_infra(local_df), _drop_infra(deploy_df)
     n_infra -= len(local_df) + len(deploy_df)
 
-    cov = _volume(local_box) / _volume(deploy_box)
+    cov = _volume(local_box, params) / _volume(deploy_box, params)
+    cov_all = _volume(local_box) / _volume(deploy_box)
     local = float(_success(local_df).mean()) if len(local_df) else float("nan")
     deploy = float(_success(deploy_df).mean()) if len(deploy_df) else float("nan")
-    outside_mask = ~_inside(deploy_df, local_box)
+    outside_mask = ~_inside(deploy_df, local_box, params)
     outside = float(_success(deploy_df[outside_mask]).mean()) if outside_mask.any() else float("nan")
-    gaps = gap_regions(deploy_df, local_box, deploy_box)
+    gaps = gap_regions(deploy_df, local_box, deploy_box, params=params)
 
     if gaps:
         where = "; ".join(
@@ -125,8 +130,12 @@ def coverage_report(local_df, deploy_df, local_box=None, deploy_box=None) -> dic
     else:
         where = "no single-parameter band with n ≥ 5 falls below 50%"
 
+    dims = " × ".join(params)
+    measure = {1: "length", 2: "area"}.get(len(params), "volume")
+    ignored = [p for p in PARAMS if p not in params]
     text = (
-        f"The local benchmark covers {cov:.1%} of the deployment domain by volume. "
+        f"The local benchmark covers {cov:.1%} of the deployment domain by {measure} ({dims}"
+        f"{'; ' + ', '.join(ignored) + ' has no effect on this task' if ignored else ''}). "
         f"The policy succeeds on {_pct(local)} of local trials (n={len(local_df)}) and "
         f"{_pct(deploy)} of deployment trials (n={len(deploy_df)}); outside the local box it succeeds on "
         f"{_pct(outside)} (n={int(outside_mask.sum())}). Failures concentrate in: {where}. "
@@ -136,6 +145,8 @@ def coverage_report(local_df, deploy_df, local_box=None, deploy_box=None) -> dic
         text += f" ({n_infra} trials with API errors are excluded.)"
     return {
         "coverage_fraction": cov,
+        "coverage_fraction_all_params": cov_all,
+        "coverage_params": list(params),
         "local_success": local,
         "deploy_success": deploy,
         "outside_local_success": outside,

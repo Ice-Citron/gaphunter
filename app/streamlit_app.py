@@ -265,8 +265,8 @@ with left:
 with right:
     st.subheader("Gap report")
     st.markdown(f'<div class="gh-report">{html.escape(rep["text"])}</div>', unsafe_allow_html=True)
-    st.markdown(f'<p class="gh-src">Data: {source} · coverage = box volume (dx × dy × yaw), '
-                f'local ∕ deployment.</p>', unsafe_allow_html=True)
+    st.markdown(f'<p class="gh-src">Data: {source} · coverage = box {" × ".join(rep["coverage_params"])}, '
+                f'local ∕ deployment ({rep["coverage_fraction_all_params"]:.1%} with yaw).</p>', unsafe_allow_html=True)
     if st.button("Re-run coverage (10 trials, deployment box)", type="primary"):
         try:
             new = rerun_coverage(10)
