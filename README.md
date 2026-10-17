@@ -62,7 +62,7 @@ Setup: `sim/README.md`.
 - Coverage is unweighted box volume.
 - The perception error is our model, chosen to mirror AIC (see the heatmap caption).
 
-**First attempt:** Astra driving a Franka on Ditto Bench's sphere-in-basket task failed our gate (0 of 6).
+**First attempt:** Astra driving a Franka on Ditto Bench's sphere-in-basket task failed our go/no-go gate: 0 of 6 nominal-placement trials succeeded.
 
 ## Roadmap
 
