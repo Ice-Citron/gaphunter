@@ -459,7 +459,13 @@ def policy_row(pol: dict, root=".", local_box=None, deploy_box=None, warns: list
 
 def policy_table(path="results/policies.json", root=".", local_box=None, deploy_box=None,
                  warns: list | None = None) -> pd.DataFrame:
-    rows = [policy_row(p, root, local_box, deploy_box, warns) for p in load_policies(path, root)]
+    try:  # per-row local boxes (e.g. the reach-limited Ditto box) live in runner.policies, not in the JSON
+        from runner.policies import POLICIES
+        boxes = {m["policy"]: m["local_box"] for m in POLICIES if m.get("local_box")}
+    except Exception:
+        boxes = {}
+    rows = [policy_row(p, root, boxes.get(p.get("policy"), local_box), deploy_box, warns)
+            for p in load_policies(path, root)]
     return pd.DataFrame(rows, columns=POLICY_COLUMNS + ["id"])
 
 

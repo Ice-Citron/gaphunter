@@ -41,14 +41,14 @@ Yaw is folded to ±45° by the square peg's symmetry (1.0% unfolded).
 | policy | family | task | n local | local success | n deploy | deploy success | outside-box success | status |
 |---|---|---|---|---|---|---|---|---|
 | astra-script | LLM-written policy code | peg-in-hole, UR5e | 30 | 90% | 600 | 16% | 13% | full |
-| astra-live | LLM closed-loop control | sphere-in-basket, Franka FR3 (Ditto OddGeometry) | planned | planned | planned | planned | planned | planned |
-| molmoact2 | VLA | not chosen yet | planned | planned | planned | planned | planned | planned |
-| pi05 | VLA | not chosen yet | planned | planned | planned | planned | planned | planned |
+| astra-live | LLM closed-loop control | Ditto Bench task 1 (DittoOddGeometry-v1) easy: pick up the 48 mm sphere and put it in the basket, Franka FR3 + Robotiq 2F-85 | 6 | 0/6 (0%) | not run | not run | not run | smoke |
+| molmoact2 | VLA | Ditto Bench task 1 (DittoOddGeometry-v1) easy: pick up the 48 mm sphere and put it in the basket, Franka FR3 + Robotiq 2F-85 | planned | planned | planned | planned | planned | planned |
+| pi05 | VLA | Ditto Bench task 1 (DittoOddGeometry-v1) easy: pick up the 48 mm sphere and put it in the basket, Franka FR3 + Robotiq 2F-85 | planned | planned | planned | planned | planned | planned |
 | gemini-robotics | VLA | not chosen yet | planned | planned | planned | planned | planned | planned |
 | gr00t | VLA | not chosen yet | planned | planned | planned | planned | planned | planned |
 
 The harness takes any `run_trial(params) -> TrialResult`; every policy gets the same map and report.
-Today one row is full, none are smoke runs, and the rest are planned.
+Today one row is full, one is a smoke run, and the rest are planned.
 
 ## How to reproduce
 
