@@ -16,7 +16,8 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[2]
 DITTO_LOCAL = {"dx": (-0.05, 0.05), "dy": (-0.02, 0.05), "yaw": (-15.0, 15.0)}    # reach-limited (sim/README.md)
 DITTO_DEPLOY = {"dx": (-0.12, 0.12), "dy": (-0.02, 0.20), "yaw": (-90.0, 90.0)}
-CONFIGS = {"molmoact2": "molmoact2_ditto.json", "pi05": "pi05_ditto.json"}
+CONFIGS = {"molmoact2": "molmoact2_ditto.json", "pi05": "pi05_ditto.json", "astra_live": "agent.json",
+           "opus_live": "opus_live.json"}
 
 
 def main():
@@ -25,6 +26,8 @@ def main():
     ap.add_argument("--local", type=int, default=2)
     ap.add_argument("--deploy", type=int, default=5)
     ap.add_argument("--stop", default="14:30", help="local wall-clock HH:MM; no trial starts after it")
+    ap.add_argument("--workers", type=int, default=1, help="parallel trials (VLAs: keep 1, one model server per GPU)")
+    ap.add_argument("--skip-existing", action="store_true", help="skip seeds already in the output CSVs")
     args = ap.parse_args()
     os.environ["GAPHUNTER_SIM"] = "ditto"
     os.environ["GAPHUNTER_DITTO_CONFIG"] = CONFIGS[args.policy]
@@ -37,17 +40,40 @@ def main():
     stop = dt.datetime.combine(dt.date.today(), dt.time.fromisoformat(args.stop))
     plan = [("local", p) for p in sample_box(DITTO_LOCAL, args.local, seed=100)] + \
            [("deploy", p) for p in sample_box(DITTO_DEPLOY, args.deploy, seed=200)]
-    for box, params in plan:
+    if args.skip_existing:
+        done = {}
+        for box in ("local", "deploy"):
+            out = ROOT / "results" / f"ditto_{args.policy}_{box}.csv"
+            done[box] = set(pd.read_csv(out)["seed"]) if out.exists() else set()
+        plan = [(b, p) for b, p in plan if p["seed"] not in done[b]]
+    print(f"{len(plan)} trials to run", flush=True)
+
+    def one(item):
+        box, params = item
         if dt.datetime.now() >= stop:
-            print(f"stop time {args.stop} reached; not starting more trials", flush=True)
-            break
-        r = run_trial(params, render=True)
-        row = {"dx": params["dx"], "dy": params["dy"], "yaw": params["yaw"], "seed": params["seed"],
-               "success": r.success, "failure_mode": r.failure_mode, "n_decisions": r.n_decisions,
-               "t_wall": r.t_wall, "clip": r.clip, "transcript": r.transcript, "pose_error_mm": None, "pass": 1}
-        out = ROOT / "results" / f"ditto_{args.policy}_{box}.csv"
-        pd.DataFrame([row])[cols].to_csv(out, mode="a", header=not out.exists(), index=False)
-        print(box, row, flush=True)
+            return None
+        import time
+        for attempt in range(3):  # a startup failure (no decision made) is infrastructure, not policy: retry
+            r = run_trial(params, render=True)
+            if not (r.failure_mode == "api_error" and r.n_decisions == 0):
+                break
+            print(f"startup failure seed {params['seed']} (attempt {attempt + 1}); retrying in 20 s", flush=True)
+            time.sleep(20)
+        else:
+            return None
+        return box, {"dx": params["dx"], "dy": params["dy"], "yaw": params["yaw"], "seed": params["seed"],
+                     "success": r.success, "failure_mode": r.failure_mode, "n_decisions": r.n_decisions,
+                     "t_wall": r.t_wall, "clip": r.clip, "transcript": r.transcript, "pose_error_mm": None, "pass": 1}
+
+    from concurrent.futures import ThreadPoolExecutor  # each trial runs in its own subprocess
+    with ThreadPoolExecutor(max_workers=args.workers) as pool:
+        for res in pool.map(one, plan):
+            if res is None:
+                continue
+            box, row = res
+            out = ROOT / "results" / f"ditto_{args.policy}_{box}.csv"
+            pd.DataFrame([row])[cols].to_csv(out, mode="a", header=not out.exists(), index=False)
+            print(box, row, flush=True)
 
 
 if __name__ == "__main__":

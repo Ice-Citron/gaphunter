@@ -1,0 +1,220 @@
+{
+ "scene_id": "ditto-01-odd_geometry-easy-seed000104",
+ "status": "success",
+ "termination_reason": "environment",
+ "oracle_success": false,
+ "steps": 216,
+ "sim_time_s": 14.4,
+ "wall_time_s": 19.382271757000126,
+ "progress_score": 1.0,
+ "final_progress_score": 0.0,
+ "inference_control_steps": [
+  0,
+  15,
+  30,
+  45,
+  60,
+  75,
+  90,
+  105,
+  120,
+  135,
+  150,
+  165,
+  180,
+  195,
+  210
+ ],
+ "policy_metadata": {
+  "policy_seed": 1000,
+  "seed_protocol": "seed_protocol_v1",
+  "sampling_controlled": true,
+  "strict_provenance": true,
+  "model_profile": "molmoact2-droid",
+  "family": "molmoact2",
+  "adapter": "droid_joint_position",
+  "profile": "native",
+  "h": 15,
+  "k": 15,
+  "control_hz": 15.0,
+  "inference_timeout": 240.0,
+  "provenance": {
+   "molmoact2_commit": "66b87e64efd99dfd103241418113955cf64dfa9c",
+   "repo_id": "allenai/MolmoAct2-DROID",
+   "revision": "d8c1abd8a27d8e859455bbe514df2bcc617db0fb",
+   "action_horizon": 15,
+   "output_action_dim": 8,
+   "norm_tag": "franka_droid",
+   "camera_layout": "official_sim_two",
+   "flow_steps": 10,
+   "enable_depth_reasoning": false,
+   "status": "loaded",
+   "model_action_dim": 32,
+   "model_profile": "molmoact2-droid",
+   "replan_steps": 15,
+   "native_control_hz": 15,
+   "molmoact2_root": "/mnt/sienarune/Black-Projects/Project-Automaton/Project-Sienar/llms-for-robot-control/third_party/molmoact2",
+   "molmoact2_worktree_clean": true,
+   "worktree_status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "worktree_status_lines": 0,
+   "relevant_sources_verified_against_commit": true,
+   "source_files": {
+    "examples/droid/host_server_droid.py": {
+     "sha256": "0e155c7b8928ac81273f8168cf81a89ae50ae7c86a66c8807143ef39b9d1cb04",
+     "matches_commit": true
+    },
+    "sim_eval/inference/common.py": {
+     "sha256": "450666106726cc93347806e807dbb9766b8af9156137fb443cf51d2bee1f7b2b",
+     "matches_commit": true
+    },
+    "sim_eval/inference/client.py": {
+     "sha256": "3194603856626721029791045443b5a71a38048e9f9e9f0d8c07806401e1b16a",
+     "matches_commit": true
+    },
+    "sim_eval/run_eval.py": {
+     "sha256": "40dbb06677b43547611c2852616e0481aeb8fef69adb11e4f3e72bb6263ca072",
+     "matches_commit": true
+    },
+    "sim_eval/robots/franka_droid.py": {
+     "sha256": "000b0eb5ed9d6dea3da6af275c2619bbbca1ba070d316d2bf5786496d55a5fc7",
+     "matches_commit": true
+    },
+    "sim_eval/tasks/droid_tasks/droid_put_everything_in_box.py": {
+     "sha256": "d1a0691c05baa53a3387544ad3b04f2bef88a73e7578708e62387f915bd64be4",
+     "matches_commit": true
+    }
+   },
+   "checkpoint": "https://huggingface.co/allenai/MolmoAct2-DROID",
+   "checkpoint_path": "/mnt/sienarune/Black-Projects/Project-Automaton/Project-Sienar/llms-for-robot-control/models/molmoact2-droid",
+   "checkpoint_source_manifest_sha256": "1cd0e05ca9ad4aa40cf09c8d7c7717cf9fe99365aaa9892d3189e5f8926f1d3b",
+   "checkpoint_tree_sha256": "176b69948af068e44f28e0f4ea87c92144a27187757de7191e9e0e56deebf959",
+   "checkpoint_files_verified": 24,
+   "checkpoint_bytes_verified": 21781603004,
+   "checkpoint_integrity": "full SHA-256 and byte count verified against VLA_SOURCE.json",
+   "norm_stats_sha256": "9cc29b5018604be4b785dd6519be3c86d0420675da7364755c58155afccb131d",
+   "model_code_sha256": "3e0090b8cc045d59911c0a579815ebd17ce0423f9fdd03be887412df5c7b8b49",
+   "inference_action_mode": "continuous",
+   "normalize_language": true,
+   "dtype": "float32",
+   "enable_cuda_graph": false,
+   "seed_protocol": "seed_protocol_v1",
+   "seed_sampling": "request-local torch.Generator(device=cuda)",
+   "raw_action_semantics": "absolute joint positions7 plus native knuckle position1",
+   "created_at": "2026-10-17T14:27:45.523855+00:00",
+   "launcher": "/mnt/sienarune/Black-Projects/Project-Automaton/Project-Sienar/llms-for-robot-control/agentic-framework/scripts/models/serve_molmoact2.py",
+   "launcher_sha256": "e17749071270166da86bdb96b0daa3776de4fc5d62f32f9a1ae06020146ecc31",
+   "python": "/mnt/sienarune/Black-Projects/Project-Automaton/Project-Sienar/llms-for-robot-control/envs/agentic-framework-molmoact2/bin/python",
+   "python_version": "3.11.17 (main, Oct 14 2026, 01:05:33) [Clang 23.1.3 ]",
+   "host": "127.0.0.1",
+   "port": 50177,
+   "pid": 337036,
+   "checkpoint_code_modified": false,
+   "cuda_visible_devices": "0",
+   "device": "NVIDIA GeForce RTX 5090",
+   "versions": {
+    "torch": "2.11.0+cu128",
+    "transformers": "4.57.6",
+    "numpy": "2.4.6",
+    "json-numpy": "2.1.1",
+    "fastapi": "0.141.1",
+    "uvicorn": "0.53.0"
+   }
+  },
+  "server_metadata": {
+   "molmoact2_commit": "66b87e64efd99dfd103241418113955cf64dfa9c",
+   "repo_id": "allenai/MolmoAct2-DROID",
+   "revision": "d8c1abd8a27d8e859455bbe514df2bcc617db0fb",
+   "action_horizon": 15,
+   "output_action_dim": 8,
+   "norm_tag": "franka_droid",
+   "camera_layout": "official_sim_two",
+   "flow_steps": 10,
+   "enable_depth_reasoning": false,
+   "status": "loaded",
+   "model_action_dim": 32,
+   "model_profile": "molmoact2-droid",
+   "replan_steps": 15,
+   "native_control_hz": 15,
+   "molmoact2_root": "/mnt/sienarune/Black-Projects/Project-Automaton/Project-Sienar/llms-for-robot-control/third_party/molmoact2",
+   "molmoact2_worktree_clean": true,
+   "worktree_status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "worktree_status_lines": 0,
+   "relevant_sources_verified_against_commit": true,
+   "source_files": {
+    "examples/droid/host_server_droid.py": {
+     "sha256": "0e155c7b8928ac81273f8168cf81a89ae50ae7c86a66c8807143ef39b9d1cb04",
+     "matches_commit": true
+    },
+    "sim_eval/inference/common.py": {
+     "sha256": "450666106726cc93347806e807dbb9766b8af9156137fb443cf51d2bee1f7b2b",
+     "matches_commit": true
+    },
+    "sim_eval/inference/client.py": {
+     "sha256": "3194603856626721029791045443b5a71a38048e9f9e9f0d8c07806401e1b16a",
+     "matches_commit": true
+    },
+    "sim_eval/run_eval.py": {
+     "sha256": "40dbb06677b43547611c2852616e0481aeb8fef69adb11e4f3e72bb6263ca072",
+     "matches_commit": true
+    },
+    "sim_eval/robots/franka_droid.py": {
+     "sha256": "000b0eb5ed9d6dea3da6af275c2619bbbca1ba070d316d2bf5786496d55a5fc7",
+     "matches_commit": true
+    },
+    "sim_eval/tasks/droid_tasks/droid_put_everything_in_box.py": {
+     "sha256": "d1a0691c05baa53a3387544ad3b04f2bef88a73e7578708e62387f915bd64be4",
+     "matches_commit": true
+    }
+   },
+   "checkpoint": "https://huggingface.co/allenai/MolmoAct2-DROID",
+   "checkpoint_path": "/mnt/sienarune/Black-Projects/Project-Automaton/Project-Sienar/llms-for-robot-control/models/molmoact2-droid",
+   "checkpoint_source_manifest_sha256": "1cd0e05ca9ad4aa40cf09c8d7c7717cf9fe99365aaa9892d3189e5f8926f1d3b",
+   "checkpoint_tree_sha256": "176b69948af068e44f28e0f4ea87c92144a27187757de7191e9e0e56deebf959",
+   "checkpoint_files_verified": 24,
+   "checkpoint_bytes_verified": 21781603004,
+   "checkpoint_integrity": "full SHA-256 and byte count verified against VLA_SOURCE.json",
+   "norm_stats_sha256": "9cc29b5018604be4b785dd6519be3c86d0420675da7364755c58155afccb131d",
+   "model_code_sha256": "3e0090b8cc045d59911c0a579815ebd17ce0423f9fdd03be887412df5c7b8b49",
+   "inference_action_mode": "continuous",
+   "normalize_language": true,
+   "dtype": "float32",
+   "enable_cuda_graph": false,
+   "seed_protocol": "seed_protocol_v1",
+   "seed_sampling": "request-local torch.Generator(device=cuda)",
+   "raw_action_semantics": "absolute joint positions7 plus native knuckle position1",
+   "created_at": "2026-10-17T14:27:45.523855+00:00",
+   "launcher": "/mnt/sienarune/Black-Projects/Project-Automaton/Project-Sienar/llms-for-robot-control/agentic-framework/scripts/models/serve_molmoact2.py",
+   "launcher_sha256": "e17749071270166da86bdb96b0daa3776de4fc5d62f32f9a1ae06020146ecc31",
+   "python": "/mnt/sienarune/Black-Projects/Project-Automaton/Project-Sienar/llms-for-robot-control/envs/agentic-framework-molmoact2/bin/python",
+   "python_version": "3.11.17 (main, Oct 14 2026, 01:05:33) [Clang 23.1.3 ]",
+   "host": "127.0.0.1",
+   "port": 50177,
+   "pid": 337036,
+   "checkpoint_code_modified": false,
+   "cuda_visible_devices": "0",
+   "device": "NVIDIA GeForce RTX 5090",
+   "versions": {
+    "torch": "2.11.0+cu128",
+    "transformers": "4.57.6",
+    "numpy": "2.4.6",
+    "json-numpy": "2.1.1",
+    "fastapi": "0.141.1",
+    "uvicorn": "0.53.0"
+   }
+  },
+  "provenance_source": "server",
+  "raw_action_semantics": "absolute_joint_position_7_and_native_knuckle_position_1",
+  "transport": {
+   "kind": "http",
+   "host": "127.0.0.1",
+   "port": 8019,
+   "url": "http://127.0.0.1:50177/act"
+  },
+  "executed_control_mode": "pd_joint_pos",
+  "comparison_note": "native cadence differs between models; not a matched-control comparison",
+  "native_gripper_bounds": [
+   0.0,
+   0.8100000023841858
+  ]
+ }
+}

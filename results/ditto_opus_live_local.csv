@@ -1,0 +1,2 @@
+dx,dy,yaw,seed,success,failure_mode,n_decisions,t_wall,clip,transcript,pose_error_mm,pass
+0.041351,0.003979,7.132937,100,False,miss,23,382.74038434028625,results/clips/ditto-opus_live-2e9a6a363297154e5565684ce7a4e0ddd703ea0b.mp4,results/transcripts/ditto-opus_live-2e9a6a363297154e5565684ce7a4e0ddd703ea0b.json,,1

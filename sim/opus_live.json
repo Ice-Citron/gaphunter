@@ -1,0 +1,51 @@
+{
+  "evaluation": {
+    "bench": "ditto",
+    "mode": "agent",
+    "task_randomize": false
+  },
+  "environment": {
+    "task_ids": "1",
+    "difficulty": "easy",
+    "trials": 1,
+    "init_start": 0,
+    "seed": 0
+  },
+  "execution": {
+    "control_interface": "move_by",
+    "h": 10,
+    "k": -1,
+    "max_steps": 450
+  },
+  "policy": {
+    "inference_timeout": 300.0
+  },
+  "observation": {
+    "profile": "control",
+    "max_images": 256,
+    "max_context_chars": 2000000
+  },
+  "output": {
+    "directory": "../results/runs/{timestamp}-opus-live",
+    "record_trajectory": false
+  },
+  "llm": {
+    "model": "claude-opus-5-5",
+    "backend": "responses",
+    "env_file": "../llms-for-robot-control/credentials.env",
+    "max_output_tokens": 16384,
+    "max_attempts": 3,
+    "augmentations": {
+      "memory": {
+        "history_length": 3
+      },
+      "reasoning": {
+        "enabled": true,
+        "effort": "low"
+      }
+    },
+    "base_url": "http://127.0.0.1:8765/v1",
+    "api_key_env": "ANTHROPIC_API_KEY",
+    "supported_efforts": "low"
+  }
+}
