@@ -13,8 +13,8 @@
   },
   "execution": {
     "control_interface": "move_by",
-    "h": 5,
-    "k": 30,
+    "h": 10,
+    "k": -1,
     "max_steps": 450
   },
   "policy": {
@@ -37,7 +37,7 @@
     "max_attempts": 3,
     "augmentations": {
       "memory": {
-        "history_length": 10
+        "history_length": 3
       },
       "reasoning": {
         "enabled": true,

@@ -27,7 +27,7 @@ RESULTS = ROOT / "results"
 RUNS = RESULTS / "runs"
 DECISION_CAP = int(os.environ.get("GAPHUNTER_DECISION_CAP", "15"))
 CAP_REASON = "gaphunter_decision_cap"
-TRIAL_TIMEOUT_S = float(os.environ.get("GAPHUNTER_TRIAL_TIMEOUT_S", "240"))
+TRIAL_TIMEOUT_S = float(os.environ.get("GAPHUNTER_TRIAL_TIMEOUT_S", "360"))
 CLIP_MAX_SIDE, CLIP_MAX_SECONDS = 320, 10.0
 
 
@@ -105,7 +105,7 @@ def _install_patches():
         policy_cls.act = act
 
     backend_cls = backend_module.ResponsesBackend
-    if os.environ.get("GAPHUNTER_TEMPERATURE", "0") != "off" and not getattr(
+    if os.environ.get("GAPHUNTER_TEMPERATURE", "off") != "off" and not getattr(
             backend_cls.prepare_request, "_gaphunter", False):
         original_prepare = backend_cls.prepare_request
 
@@ -130,6 +130,7 @@ def _framework_argv(params, out: Path, render: bool) -> list[str]:
     args, extra = ev.parse_arguments([
         str(AGENT_JSON), "--seed", str(int(params["seed"])), "--output-dir", str(out),
         "--record-trajectory" if render else "--no-record-trajectory",
+        *(["--difficulty", os.environ["GAPHUNTER_DIFFICULTY"]] if os.environ.get("GAPHUNTER_DIFFICULTY") else []),
     ])
     plan = ev.build_plan(args, extra)
     out.mkdir(parents=True, exist_ok=True)
@@ -153,7 +154,8 @@ def _failure_mode(row) -> str:
         return ""
     if row.get("status") in ("discarded", "error", "failed") or row.get("policy", {}).get("transport_failures"):
         return "api_error"
-    lifted = any(
+    # progress = object bottom height / 85 mm; 0.3 means it left the table by ~25 mm
+    lifted = (row.get("progress_score") or 0) > 0.3 or any(
         (a.get("controller") or {}).get("task_metrics", {}).get("object_lifted")
         for a in row.get("action_audit", [])
     )
