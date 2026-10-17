@@ -1,0 +1,7 @@
+{
+  "success_clip": "results/clips/b8d5c1ac421725758b8a285483132db2f2f4fd07.mp4",
+  "failure_clip": "results/clips/1b6fad9b8d6597f26b086fafbe123357f415a9a2.mp4",
+  "failure_transcript": "results/transcripts/1b6fad9b8d6597f26b086fafbe123357f415a9a2.json",
+  "headline": "At dx = +0.18 m, hole_pose() puts the hole 9.3 mm from where it is. Astra's policy searches only ±1.8 mm around that estimate, so it never finds the hole: miss after 225 API calls.",
+  "quote": "Because camera-error bounds and contact stiffness are unspecified, small steps and an early force threshold reduce risk but cannot guarantee avoiding the 150 N abort threshold"
+}

@@ -19,8 +19,11 @@ sys.path.insert(0, str(ROOT))
 RESULTS = ROOT / "results"
 
 import analysis.coverage  # noqa: E402
+import runner.sample  # noqa: E402
 
 # Streamlit reruns this script but keeps imported modules; reload so edits to the analysis show up.
+# runner.sample first: it defines the boxes that analysis.coverage reads.
+importlib.reload(runner.sample)
 importlib.reload(analysis.coverage)
 from analysis.coverage import coverage_report, default_boxes, heatmap, inside_local  # noqa: E402
 
@@ -38,12 +41,15 @@ p.gh-back, .stMarkdown p.gh-back {color: #c3c7cf; font-size: 1.1rem !important; 
 .gh-tile .lbl {color: #8b8f98; font-size: .8rem; text-transform: uppercase; letter-spacing: .04em;}
 .gh-tile .val {font-size: 2.6rem; font-weight: 700; line-height: 1.1;}
 .gh-tile .n {color: #8b8f98; font-size: .8rem;}
-.gh-ph {background: #2a2d34; color: #8b8f98; border-radius: 8px; height: 170px;
+.gh-ph {background: #2a2d34; color: #8b8f98; border-radius: 8px; height: 190px;
         display: flex; align-items: center; justify-content: center; text-align: center; padding: 1rem;}
 .gh-report {font-size: 1rem; line-height: 1.55;}
 .gh-src {color: #8b8f98; font-size: .75rem;}
 .gh-foot {color: #8b8f98; font-size: .85rem; border-top: 1px solid #30343c; padding-top: .6rem; margin-top: .8rem;}
-video {max-height: 240px;}
+video {max-height: 190px;}
+.gh-head {color: #e6e6e6; font-size: .95rem; border-left: 3px solid #d64545; padding: .2rem .6rem; margin: .3rem 0 .5rem 0;}
+.gh-quote {color: #e6e6e6; border-left: 3px solid #6b6f78; margin: 0 0 .6rem 0; padding: .2rem .7rem;}
+.gh-quote span {color: #8b8f98; font-size: .8rem;}
 h3 {padding: .4rem 0 .3rem 0 !important;}
 </style>
 """,
@@ -113,8 +119,7 @@ def load_data() -> tuple[pd.DataFrame, pd.DataFrame, str]:
 
 
 @st.cache_data
-def _heatmap_png(df: pd.DataFrame, path: str, code_mtime: float) -> bytes | None:
-    lb, db = default_boxes()
+def _heatmap_png(df: pd.DataFrame, path: str, code_mtime: float, lb: dict, db: dict) -> bytes | None:
     heatmap(df, local_box=lb, deploy_box=db, path=path)
     return Path(path).read_bytes()
 
@@ -148,6 +153,22 @@ def pick_clip(df: pd.DataFrame, want_success: bool, box: dict) -> dict | None:
     return None
 
 
+def _clip_caption(clip: Path) -> str | None:
+    """Caption from the clip's own transcript (results/transcripts/<hash>.json), if there is one."""
+    t = RESULTS / "transcripts" / f"{clip.stem}.json"
+    try:
+        d = _transcript(str(t), _mtime(t)) if t.exists() else None
+    except Exception:
+        return None
+    if not isinstance(d, dict) or "params" not in d:
+        return None
+    p, o = d["params"], d.get("outcome") or {}
+    res = "success" if o.get("success") else (o.get("failure_mode") or "failure")
+    extra = f" · depth {o['depth_mm']:.1f} mm · lateral {o['lateral_mm']:.1f} mm" if "lateral_mm" in o else ""
+    return (f"dx={p['dx']:+.3f} m · dy={p['dy']:+.3f} m · yaw={p['yaw']:+.0f}° · {res}{extra}"
+            f" · {o.get('api_calls', len(d.get('steps', [])))} API calls")
+
+
 def show_clip(row: dict | None, path_override: str | None, empty_msg: str) -> None:
     clip = _resolve(path_override) if path_override else (_resolve(row.get("clip")) if row else None)
     if clip is None:
@@ -157,9 +178,12 @@ def show_clip(row: dict | None, path_override: str | None, empty_msg: str) -> No
         st.image(str(clip), width="stretch")
     else:
         st.video(str(clip))
-    if row:
+    cap = _clip_caption(clip)
+    if cap:
+        st.caption(cap)
+    elif row and not path_override:
         st.caption(f"dx={row['dx']:+.3f} m · dy={row['dy']:+.3f} m · yaw={row['yaw']:+.0f}° · "
-                   f"{row.get('failure_mode') or 'success'} · {int(row.get('n_decisions', 0))} Astra calls")
+                   f"{row.get('failure_mode') or 'success'} · {int(row.get('n_decisions', 0))} API calls")
 
 
 def _trim(v, limit=1500):
@@ -281,7 +305,7 @@ with left:
     hm_path = RESULTS / ("heatmap.png" if source == "real" else "heatmap_fake.png")
     all_df = pd.concat([local_df, deploy_df], ignore_index=True)
     try:
-        png = _heatmap_png(all_df, str(hm_path), _mtime(ROOT / "analysis" / "coverage.py")) if len(all_df) else None
+        png = _heatmap_png(all_df, str(hm_path), _mtime(ROOT / "analysis" / "coverage.py"), lb, db) if len(all_df) else None
     except Exception as e:
         png = None
         st.caption(f"Heatmap failed: {e}")
@@ -293,7 +317,7 @@ with right:
     st.subheader("Gap report")
     st.markdown(f'<div class="gh-report">{html.escape(rep["text"])}</div>', unsafe_allow_html=True)
     st.markdown(f'<p class="gh-src">Data: {source} · coverage = box {" × ".join(rep["coverage_params"])}, '
-                f'local ∕ deployment ({rep["coverage_fraction_all_params"]:.1%} with yaw).</p>', unsafe_allow_html=True)
+                f'local ∕ deployment ({rep["coverage_fraction_all_params"]:.1%} without yaw folding).</p>', unsafe_allow_html=True)
     if st.button("Re-run coverage (10 trials, deployment box)", type="primary"):
         try:
             new = rerun_coverage(10)
@@ -306,7 +330,7 @@ with right:
         st.caption(f"Includes {len(st.session_state['extra'])} re-run trials from this session.")
 
 feat = _featured()
-c1, c2 = st.columns(2, gap="medium")
+c1, c2, c3 = st.columns(3, gap="medium")
 with c1:
     st.subheader("In the benchmark")
     ok_row = pick_clip(pd.concat([local_df, deploy_df], ignore_index=True), True, lb)
@@ -315,7 +339,15 @@ with c2:
     st.subheader("Outside the benchmark")
     bad_row = pick_clip(deploy_df, False, lb)
     show_clip(bad_row, feat.get("failure_clip"), "Failure clip renders here once Agent 1 records one.")
+with c3:
+    st.subheader("Why it failed")
+    if feat.get("headline"):
+        st.markdown(f'<div class="gh-head">{html.escape(feat["headline"])}</div>', unsafe_allow_html=True)
     with st.expander("What Astra was thinking"):
+        if feat.get("quote"):
+            st.markdown(f'<blockquote class="gh-quote">“{html.escape(feat["quote"])}”'
+                        f'<br><span>— Astra, in the reply that wrote policy.py</span></blockquote>',
+                        unsafe_allow_html=True)
         show_transcript(feat.get("failure_transcript") or (bad_row or {}).get("transcript"))
 
 st.markdown(
