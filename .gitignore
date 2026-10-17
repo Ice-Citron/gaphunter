@@ -230,3 +230,5 @@ credentials.env.*
 llms-for-robot-control/
 results/clips/*.mp4.tmp
 third_party/
+results/runs/
+results/transcripts/*.stderr.txt
