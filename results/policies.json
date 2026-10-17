@@ -22,7 +22,7 @@
   "task": "Ditto Bench task 1 (DittoOddGeometry-v1) easy: pick up the 48 mm sphere and put it in the basket, Franka FR3 + Robotiq 2F-85",
   "sim": "ditto",
   "status": "smoke",
-  "n_local": 6,
+  "n_local": 8,
   "local_success": 0.0,
   "n_deploy": 0,
   "deploy_success": null,
