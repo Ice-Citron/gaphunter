@@ -232,3 +232,5 @@ results/clips/*.mp4.tmp
 third_party/
 results/runs/
 results/transcripts/*.stderr.txt
+results/rerun.csv
+results/heatmap_fake.png

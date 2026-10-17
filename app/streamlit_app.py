@@ -5,6 +5,7 @@ from __future__ import annotations
 import html
 import inspect
 import json
+import os
 import random
 import sys
 from pathlib import Path
@@ -106,8 +107,7 @@ def load_data() -> tuple[pd.DataFrame, pd.DataFrame, str]:
 
 
 @st.cache_data
-def _heatmap_png(df_json: str, path: str) -> bytes | None:
-    df = pd.read_json(df_json, orient="split")
+def _heatmap_png(df: pd.DataFrame, path: str) -> bytes | None:
     lb, db = default_boxes()
     heatmap(df, local_box=lb, deploy_box=db, path=path)
     return Path(path).read_bytes()
@@ -155,7 +155,7 @@ def show_clip(row: dict | None, path_override: str | None, empty_msg: str) -> No
         placeholder(empty_msg)
         return
     if clip.suffix.lower() == ".gif":
-        st.image(str(clip), use_container_width=True)
+        st.image(str(clip), width="stretch")
     else:
         st.video(str(clip))
     if row:
@@ -185,18 +185,19 @@ def show_transcript(path) -> None:
         st.caption(f"Transcript unreadable: {e}")
         return
     steps = data if isinstance(data, list) else data.get("decisions", data.get("steps", [data]))
+    st.caption(f"Last {min(5, len(steps))} of {len(steps)} decisions, verbatim. Prompt text omitted.")
     for d in steps[-5:]:
         d = _trim(d)
-        step = d.get("step", "?") if isinstance(d, dict) else "?"
-        st.markdown(f"**Decision {step}**")
-        out = d.get("output") if isinstance(d, dict) else None
-        if isinstance(out, str):
-            st.code(out, language=None, wrap_lines=True)
-            rest = {k: v for k, v in d.items() if k not in ("step", "output")}
-            if rest:
-                st.code(json.dumps(rest, indent=1, default=str), language="json", wrap_lines=True)
-        else:
+        if not isinstance(d, dict):
             st.code(json.dumps(d, indent=1, default=str), language="json", wrap_lines=True)
+            continue
+        meta = " · ".join(f"{k}: {d[k]}" for k in ("outcome", "error", "elapsed_s") if d.get(k) not in (None, ""))
+        st.markdown(f"**Decision {d.get('decision', d.get('step', '?'))}**" + (f" — {meta}" if meta else ""))
+        if isinstance(d.get("output"), str) and d["output"].strip():
+            st.code(d["output"], language=None, wrap_lines=True)
+        if d.get("action") not in (None, "", []):
+            act = d["action"] if isinstance(d["action"], str) else json.dumps(d["action"], indent=1, default=str)
+            st.code(act, language="json", wrap_lines=True)
 
 
 def tile(col, label: str, value: float, n: int, color: str) -> None:
@@ -216,12 +217,13 @@ def rerun_coverage(n: int = 10) -> pd.DataFrame:
     def progress(done, total):
         bar.progress(done / total, text=f"Running {done}/{total} trials on the deployment box…")
 
+    kw = {"force_fake": True} if os.environ.get("GAPHUNTER_FAKE_RERUN") == "1" else {}
     if "progress" in inspect.signature(run_batch).parameters:
-        df = run_batch(params, n_workers=4, tag="rerun", progress=progress)
+        df = run_batch(params, n_workers=2, tag="rerun", progress=progress, **kw)
     else:
         parts = []
         for i, p in enumerate(params):
-            parts.append(run_batch([p], n_workers=1, tag="rerun"))
+            parts.append(run_batch([p], n_workers=1, tag="rerun", **kw))
             progress(i + 1, n)
         df = pd.concat(parts, ignore_index=True)
     bar.progress(1.0, text=f"Done: {int(df['success'].sum())}/{len(df)} succeeded.")
@@ -251,12 +253,12 @@ with left:
     hm_path = RESULTS / ("heatmap.png" if source == "real" else "heatmap_fake.png")
     all_df = pd.concat([local_df, deploy_df], ignore_index=True)
     try:
-        png = _heatmap_png(all_df.to_json(orient="split"), str(hm_path)) if len(all_df) else None
+        png = _heatmap_png(all_df, str(hm_path)) if len(all_df) else None
     except Exception as e:
         png = None
         st.caption(f"Heatmap failed: {e}")
     if png:
-        st.image(png, use_container_width=True)
+        st.image(png, width="stretch")
     else:
         placeholder("Heatmap appears once results/local.csv and results/deploy.csv exist.")
 with right:
