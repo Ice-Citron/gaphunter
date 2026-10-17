@@ -124,3 +124,25 @@ the object may leave the frame, which is a likely failure mode.
 ## Headless / Vulkan notes
 
 (fill in on the 5090: vulkaninfo result, ICD path, DISPLAY handling)
+
+## Gate log (12:36-13:00) and outcome: FALLBACK
+
+Pipeline verified end to end. The offset hook fires in the worker: with dx=0.15, the logged sphere pose was x=-0.25 vs default -0.40.
+`temperature` is rejected by Astra (HTTP 400), so the patch is off by default (`GAPHUNTER_TEMPERATURE=off`).
+Speed config: h=10, k=-1, history 3, effort low. That is about 7-25 s per decision and 140-330 s per episode.
+
+| set | config | nominal (dx=dy=yaw=0) results |
+|---|---|---|
+| gate 2, 2b | friction 0.10 (native), cap 15 | timeout; drop (lifted, slipped in transfer) |
+| medium | tapered block, cap 15 | timeout (grasps missed) |
+| seeds 10-12 | friction 0.10, cap 25 | timeout, drop, drop |
+| seeds 20-22 | **friction override 0.5** (`task_override.DEFAULT_FRICTION`, `GAPHUNTER_FRICTION`), cap 25 | drop, drop, drop (all reached progress 1.0, then lost the ball in transfer) |
+
+Rule (2 of 3 in either set to stay on Ditto) not met: 0/6. **Fallback to MuJoCo** at 13:00.
+Friction override: `task_override.patch()` wraps `geometry_tasks.build_actor` for the `odd_geometry` actor only,
+and records `gaphunter_object_friction` in `task_spec`. The default is 0.5. `GAPHUNTER_FRICTION=native` restores 0.10.
+
+Reach probe (`sim/tools/reach_probe.py`, results in `results/reach_probe.json`): top-down TCP at 6 cm, lift-travel-descend P-control.
+Reachable: dx in [-0.10, +0.05] for dy in [0, +0.20], dx up to +0.10 for dy >= +0.10, dx down to -0.20 for dy >= +0.10.
+Not reachable: dx >= +0.15 at any dy (the gripper cannot descend: IK stalls, matching "no measured motion" in the dx=0.18 run).
+At dy=-0.08 the open fingers hit the basket wall. If Ditto is revived, the deploy box is dx [-0.12, +0.12], dy [-0.02, +0.20].

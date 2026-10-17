@@ -21,6 +21,15 @@ ENV_VAR = "GAPHUNTER_PARAMS"
 ENV_ID = "GapHunter-OddGeometry-v0"
 OVERRIDE: dict | None = None  # in-process alternative to the env var
 
+# Object friction override, identical for local and deploy runs. Ditto easy uses 0.10, on which
+# Astra's grasps slipped at nominal. GAPHUNTER_FRICTION=native keeps Ditto's own value.
+DEFAULT_FRICTION = "0.5"
+
+
+def object_friction() -> float | None:
+    raw = os.environ.get("GAPHUNTER_FRICTION", DEFAULT_FRICTION)
+    return None if raw == "native" else float(raw)
+
 
 def current_offsets() -> tuple[float, float, float]:
     params = OVERRIDE
@@ -37,6 +46,7 @@ def apply_offsets(env, env_idx) -> None:
     from transforms3d.euler import euler2quat
     from transforms3d.quaternions import qmult
 
+    env.task_spec["gaphunter_object_friction"] = object_friction()  # None = Ditto's native value
     dx, dy, yaw = current_offsets()
     if dx == 0.0 and dy == 0.0 and yaw == 0.0:
         return
@@ -52,10 +62,22 @@ def apply_offsets(env, env_idx) -> None:
 
 
 def patch() -> None:
+    from ditto.tasks import geometry_tasks
     from ditto.tasks.geometry_tasks import OddGeometryEnv
 
     if getattr(OddGeometryEnv.initialize_task, "_gaphunter", False):
         return
+    friction = object_friction()
+    if friction is not None:
+        # build_task looks up build_actor as a module global; only the task object is changed.
+        original_build_actor = geometry_tasks.build_actor
+
+        def build_actor(env, name, *args, **kwargs):
+            if name == "odd_geometry":
+                kwargs["friction"] = friction
+            return original_build_actor(env, name, *args, **kwargs)
+
+        geometry_tasks.build_actor = build_actor
     original = OddGeometryEnv.initialize_task
 
     def initialize_task(self, env_idx, options):
