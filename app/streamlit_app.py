@@ -337,6 +337,30 @@ def rerun_coverage(backend: str, n: int = 10) -> pd.DataFrame:
             progress(i + 1, n)
         df = pd.concat(parts, ignore_index=True)
     bar.progress(1.0, text=f"Done: {int(df['success'].sum())}/{len(df)} succeeded.")
+    return _drop_rerun_artifacts(df)
+
+
+def _drop_rerun_artifacts(df: pd.DataFrame) -> pd.DataFrame:
+    """Re-run trials are session-only: delete the transcripts/clips they wrote into the tracked results/ folders,
+    unless a committed CSV references the same file (a param-hash collision with a real trial)."""
+    import subprocess
+    keep = set()
+    try:
+        tracked = subprocess.run(["git", "ls-files", "results/*.csv"], cwd=ROOT, capture_output=True,
+                                 text=True).stdout.split()
+        for f in tracked:
+            d = pd.read_csv(ROOT / f)
+            for c in ("transcript", "clip"):
+                if c in d:
+                    keep |= set(d[c].dropna().astype(str))
+    except Exception:
+        return df  # cannot tell what is referenced: leave the files alone
+    for c in ("transcript", "clip"):
+        if c in df:
+            for rel in df[c].dropna().astype(str):
+                if rel not in keep and (ROOT / rel).is_file():
+                    (ROOT / rel).unlink()
+            df[c] = None
     return df
 
 
@@ -428,10 +452,9 @@ tile(t1, "success outside the local box", rep["outside_local_success"], rep["n_o
 tile(t2, "success inside the benchmark", rep["local_success"], rep["n_local"])
 tile(t3, "success over the deployment box", rep["deploy_success"], rep["n_deploy"])
 
-if source == "real":
-    hm_path = RESULTS / ("heatmap.png" if is_primary else f"heatmap_{pid}.png")
-else:
-    hm_path = RESULTS / "heatmap_fake.png"
+# The app never writes results/heatmap.png (the README image, rebuilt by fill_docs from the committed CSVs);
+# its renders, which may include this session's Re-run rows, go to git-ignored files.
+hm_path = RESULTS / (f"heatmap_app_{pid}.png" if source == "real" else "heatmap_fake.png")
 all_df = pd.concat([local_df, deploy_df], ignore_index=True)
 try:
     png = _heatmap_png(all_df, str(hm_path), _mtime(ROOT / "analysis" / "coverage.py"), lb, db) if len(all_df) else None

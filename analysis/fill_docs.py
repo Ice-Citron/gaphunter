@@ -119,6 +119,13 @@ def main() -> None:
     vals, warns = values(ROOT / f"results/{prefix}local.csv", ROOT / f"results/{prefix}deploy.csv")
     for k, v in vals.items():
         print(f"{k:18} {v if k != '{policy_table}' else chr(10) + v}")
+    if not a.fake:  # the README image, from the committed CSVs only (never the app's session data)
+        from analysis.coverage import heatmap
+        lb, db = default_boxes()
+        ldf = pd.read_csv(ROOT / "results/local.csv")
+        ddf = pd.read_csv(ROOT / "results/deploy.csv")
+        print("heatmap:", heatmap(pd.concat([ldf, ddf], ignore_index=True), local_box=lb, deploy_box=db,
+                                  path=str(ROOT / "results/heatmap.png")))
     for w in warns:
         print(f"WARN {w}", file=sys.stderr)
     for name in DOCS:
