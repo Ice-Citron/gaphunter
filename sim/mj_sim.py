@@ -7,7 +7,8 @@ Perception model (the deliberate, documented gap): hole_pose() is a camera estim
 calibration was fitted on the local region around NOMINAL_HOLE. It leaves radial lens distortion
 uncorrected, so the position error grows as K_RADIAL * r**3 with r = distance from the calibration
 centre (about 0.2 mm at 5 cm, 12.8 mm at 20 cm), and yaw error grows as K_YAW * yaw**3 on the
-square's 90-degree-symmetric yaw. Small seeded noise is added on top.
+square's 90-degree-symmetric yaw. Per-seed Gaussian noise is added on top: per-axis position sigma
+0.4 mm + 0.25 x the systematic error at that r, yaw sigma 0.5 deg.
 """
 from __future__ import annotations
 
@@ -32,7 +33,9 @@ SUCCESS_DEPTH = 0.030
 SUCCESS_LATERAL = 0.001
 K_RADIAL = 1.6           # m^-2: error = K_RADIAL * r^3
 K_YAW = 0.10             # rad^-2: yaw error = K_YAW * yaw^3
-NOISE_POS, NOISE_YAW = 1e-4, math.radians(0.1)
+NOISE_POS_BASE = 0.4e-3   # m, per-axis sigma at the calibration centre
+NOISE_POS_FRAC = 0.25     # sigma grows by 25% of the systematic error at that r
+NOISE_YAW = math.radians(0.5)
 COLLISION_N = 150.0
 MAX_API_CALLS = 300
 
@@ -99,6 +102,7 @@ class PegSim:
         self.tip = self.model.site("peg_tip").id
         self.peg_geom = self.model.geom("peg").id
         self.calls, self.log, self.frames = 0, [], []
+        self.pose_error_mm = None
         self.max_force = 0.0
         self.record_every = record_every
         self.renderer = None
@@ -144,7 +148,7 @@ class PegSim:
             self.data.qfrc_applied[:] = self.data.qfrc_bias
             mujoco.mj_step(self.model, self.data)
             self._step_count += 1
-            if self.record_every and self._step_count % self.record_every == 0:
+            if self.record_every > 0 and self._step_count % self.record_every == 0:
                 self._capture()
         force = self._contact_force()
         self.max_force = max(self.max_force, force)
@@ -154,10 +158,23 @@ class PegSim:
         return self._step(n)
 
     def _capture(self):
-        if self.renderer is None:
-            self.renderer = mujoco.Renderer(self.model, 240, 320)
-        self.renderer.update_scene(self.data, camera="side")
-        self.frames.append(self.renderer.render().copy())
+        if self.record_every < 0:  # rendering failed earlier: stop trying
+            return
+        try:
+            if self.renderer is None:
+                self.renderer = mujoco.Renderer(self.model, 240, 320)
+            self.renderer.update_scene(self.data, camera="side")
+            self.frames.append(self.renderer.render().copy())
+        except Exception:  # noqa: BLE001 - a missing clip must never fail a trial
+            self.record_every = -1
+
+    def close_renderer(self):
+        try:
+            if self.renderer is not None:
+                self.renderer.close()
+        except Exception:  # noqa: BLE001
+            pass
+        self.renderer = None
 
     def _ik(self, xyz, yaw, iters=200):
         m, d = self.model, self.scratch
@@ -211,10 +228,14 @@ class PegSim:
         (x, y, z), yaw = self.hole_true()
         d = np.array([x, y]) - NOMINAL_HOLE
         r = float(np.linalg.norm(d))
-        est_xy = NOMINAL_HOLE + d * (1 + K_RADIAL * r * r) + self.rng.normal(0, NOISE_POS, 2)
+        systematic = K_RADIAL * r ** 3
+        sigma = NOISE_POS_BASE + NOISE_POS_FRAC * systematic
+        est_xy = NOMINAL_HOLE + d * (1 + K_RADIAL * r * r) + self.rng.normal(0, sigma, 2)
         y90 = (yaw + math.pi / 4) % (math.pi / 2) - math.pi / 4  # camera sees a square: yaw mod 90
         est_yaw = y90 + K_YAW * y90 ** 3 + self.rng.normal(0, NOISE_YAW)
         result = ((float(est_xy[0]), float(est_xy[1]), float(z)), float(math.degrees(est_yaw)))
+        if self.pose_error_mm is None:  # first estimate the policy received
+            self.pose_error_mm = round(float(np.linalg.norm(est_xy - np.array([x, y]))) * 1000, 3)
         self._count("hole_pose", {}, [list(result[0]), result[1]])
         return result
 

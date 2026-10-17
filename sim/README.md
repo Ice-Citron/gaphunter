@@ -163,13 +163,20 @@ Success (`mj_sim.PegSim.outcome`): tip depth >= 30 mm below the top surface and 
 `failure_mode`: `collision` (contact force > 150 N), `timeout` (> 300 API calls or 60 s wall), `api_error`
 (the policy raised), else `miss`. `n_decisions` = policy API calls. Same params + seed give the same result.
 
-**Perception model (the gap mechanism, stated openly):** `hole_pose()` models a camera calibrated on the
-local region around (0.45, 0). Radial lens distortion is left uncorrected: estimated offset = d * (1 + 1.6 |d|^2), so the
-error is 1.6 r^3. That is 0.2 mm at r = 5 cm, 1.6 mm at 10 cm, 9.3 mm at dx = 0.18, and 12.8 mm at 20 cm. The yaw error is
-0.1 yaw^3 (rad) on yaw mod 90°. Seeded noise of 0.1 mm / 0.1° is added on top. The physics tolerates about 2 mm (the walls guide the peg).
-The prompt tells Astra only the local placement ranges (+/-5 cm, +/-15°), which is the "benchmark" it designed for.
+**Error model.** `hole_pose()` returns the true hole position, distorted by an uncorrected radial lens term
+(systematic error 1.6 r^3, with r the distance from the calibration centre at (0.45, 0)) plus per-seed Gaussian noise
+(per-axis sigma 0.4 mm + 0.25 x that systematic error, and yaw sigma 0.5°). It mirrors the AIC story: the camera was
+"calibrated" only over the local placement radius, so it is accurate where the benchmark samples and degrades
+outside it. This is a modelled error chosen for the demo, not a measurement of any real camera. Astra's ±1.8 mm
+search range is its own choice: given only 0.5 mm clearance and the local placement ranges (and no camera error
+figure), v1 searches a 0.6 mm grid out to 3 rings around the estimate.
+
+Measured with policy v1 (40 trials per ring, random direction and yaw): success is 85-92% for r <= 0.07 m,
+then 78% / 40% / 30% / 10% at r = 0.08 / 0.09 / 0.10 / 0.11 m, and 0-2% from r = 0.12 m. Nominal (dx=dy=yaw=0) passes 10/10 seeds.
+`TrialResult.pose_error_mm` is the XY distance between the first `hole_pose()` estimate and the true hole.
+`run_trial` returns `clip=None` when the mp4 is under 50 KB, and rendering errors never fail a trial.
 
 Astra's v1 policy (`results/policies/v1.py`) aligns to the estimate. It retracts on more than 15 N of contact and
-searches a +/-1.8 mm grid plus +/-4° yaw. First distribution check (random, not Sobol): local 30/30, deploy 4/40.
-Example failure, dx=0.18: the estimate was 9.3 mm off and the search radius is 1.8 mm, so the trial ended with `miss` after 225 calls.
+searches a +/-1.8 mm grid plus +/-4° yaw. Before the noise change (13:05, noise 0.1 mm): local 30/30, deploy 27/150 (Agent B).
+Example failure, dx=0.140 dy=0.173: the estimate is about 17 mm off against a 1.8 mm search radius, so the trial ends in `miss`.
 The UR5e reaches the whole deploy box (dx, dy ±0.20, yaw ±90).

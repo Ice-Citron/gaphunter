@@ -14,6 +14,7 @@ class TrialResult:
     t_wall: float           # seconds
     clip: str | None = None        # results/clips/<hash>.mp4, if rendered
     transcript: str | None = None  # results/transcripts/<hash>.json
+    pose_error_mm: float | None = None  # |camera estimate - true hole| in XY at the first hole_pose (MuJoCo only)
 
 
 def run_trial(params: dict, render: bool = False) -> TrialResult:

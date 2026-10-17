@@ -19,6 +19,7 @@ RESULTS = ROOT / "results"
 POLICY_VERSION = os.environ.get("GAPHUNTER_POLICY", "v1")
 WALL_LIMIT_S = int(os.environ.get("GAPHUNTER_TRIAL_TIMEOUT_S", "60"))
 CLIP_FPS, CLIP_MAX_SECONDS = 15, 10.0
+MIN_CLIP_BYTES = 50_000
 
 
 class _WallTimeout(Exception):
@@ -85,13 +86,18 @@ def run_mj_trial(params: dict, render: bool = False):
         mode = ""
     elif not mode:
         mode = "miss"
+    clip = None
     if render:
         sim._capture()
-        clip = _write_clip(sim.frames, h)
-        sim.renderer.close()
-    else:
-        clip = None
-    outcome.update(failure_mode=mode, error=error, api_calls=sim.calls)
+        try:
+            clip = _write_clip(sim.frames, h)
+            if clip and (ROOT / clip).stat().st_size < MIN_CLIP_BYTES:
+                (ROOT / clip).unlink(missing_ok=True)
+                clip = None  # too small to be a usable video
+        except Exception:  # noqa: BLE001 - never fail a trial on rendering
+            clip = None
+        sim.close_renderer()
+    outcome.update(failure_mode=mode, error=error, api_calls=sim.calls, pose_error_mm=sim.pose_error_mm)
     transcript = RESULTS / "transcripts" / f"{h}.json"
     transcript.parent.mkdir(parents=True, exist_ok=True)
     transcript.write_text(json.dumps({"params": {k: params[k] for k in ("dx", "dy", "yaw", "seed")},
@@ -99,4 +105,4 @@ def run_mj_trial(params: dict, render: bool = False):
                                       "outcome": outcome}, indent=1, default=float))
     return TrialResult(dict(params), bool(outcome["success"] and mode == ""), mode, sim.calls,
                        time.time() - t0, clip,
-                       str(transcript.relative_to(ROOT)))
+                       str(transcript.relative_to(ROOT)), sim.pose_error_mm)
