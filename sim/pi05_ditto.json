@@ -1,0 +1,28 @@
+{
+  "evaluation": {
+    "bench": "ditto",
+    "mode": "vla",
+    "task_randomize": false
+  },
+  "environment": {
+    "task_ids": "1",
+    "trials": 1,
+    "init_start": 0,
+    "seed": 0,
+    "difficulty": "easy"
+  },
+  "execution": {
+    "max_steps": 450
+  },
+  "policy": {
+    "model_profile": "pi05-droid",
+    "seed": 1000
+  },
+  "observation": {
+    "profile": "control"
+  },
+  "output": {
+    "directory": "../results/runs/{timestamp}-pi05",
+    "record_trajectory": true
+  }
+}

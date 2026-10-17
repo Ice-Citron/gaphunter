@@ -1,0 +1,28 @@
+{
+  "evaluation": {
+    "bench": "ditto",
+    "mode": "vla",
+    "task_randomize": false
+  },
+  "environment": {
+    "task_ids": "1",
+    "difficulty": "easy",
+    "trials": 1,
+    "init_start": 0,
+    "seed": 0
+  },
+  "execution": {
+    "max_steps": 450
+  },
+  "policy": {
+    "model_profile": "molmoact2-droid",
+    "seed": 1000
+  },
+  "observation": {
+    "profile": "control"
+  },
+  "output": {
+    "directory": "../results/runs/{timestamp}-molmoact2",
+    "record_trajectory": true
+  }
+}

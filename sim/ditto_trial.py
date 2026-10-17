@@ -22,7 +22,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 LRC = Path(os.environ.get("GAPHUNTER_LRC", ROOT / "llms-for-robot-control")).resolve()
-AGENT_JSON = ROOT / "sim" / "agent.json"
+AGENT_JSON = ROOT / "sim" / os.environ.get("GAPHUNTER_DITTO_CONFIG", "agent.json")  # or molmoact2_ditto.json / pi05_ditto.json
+ARTIFACT_PREFIX = f"ditto-{AGENT_JSON.stem}-"  # keeps Ditto clips/transcripts apart from MuJoCo ones with the same params
 RESULTS = ROOT / "results"
 RUNS = RESULTS / "runs"
 DECISION_CAP = int(os.environ.get("GAPHUNTER_DECISION_CAP", "15"))
@@ -47,9 +48,15 @@ def _in_framework_venv() -> bool:
 
 # ---------------------------------------------------------------- entry point used by sim.trial
 
+def _is_vla() -> bool:
+    return json.loads(AGENT_JSON.read_text())["evaluation"].get("mode") == "vla"
+
+
 def run_ditto_trial(params: dict, render: bool = False):
     from sim.trial import TrialResult
 
+    if _is_vla():
+        return TrialResult(**_run_vla(params, render))
     if not _in_framework_venv():
         return _run_in_subprocess(params, render)
     return TrialResult(**_run_in_process(params, render))
@@ -82,6 +89,59 @@ def _run_in_subprocess(params, render):
                        + "\n---- stderr ----\n" + stderr[-20000:])
         return TrialResult(dict(params), False, mode, 0, time.time() - t0, None, None)
     return TrialResult(**json.loads(lines[-1].removeprefix("GAPHUNTER_RESULT ")))
+
+
+# ---------------------------------------------------------------- native VLA (MolmoAct2 / pi05)
+
+def _run_vla(params: dict, render: bool) -> dict:
+    """Native VLAs need eval.py's model-server startup, so run the full launcher as a subprocess.
+    The offsets still reach the sim worker through the inherited env (GAPHUNTER_PARAMS + sim/_inject)."""
+    t0 = time.time()
+    h = param_hash(params)
+    out = RUNS / f"{h}-{AGENT_JSON.stem}-{int(t0)}"
+    env = dict(os.environ)
+    env["GAPHUNTER_PARAMS"] = json.dumps({k: float(params[k]) for k in ("dx", "dy", "yaw")})
+    env["GAPHUNTER_ROOT"] = str(ROOT)
+    env["PYTHONPATH"] = os.pathsep.join(filter(None, (str(ROOT / "sim" / "_inject"), env.get("PYTHONPATH"))))
+    env.setdefault("CUDA_VISIBLE_DEVICES", "0")
+    cmd = [str(framework_python()), "-B", str(LRC / "scripts" / "eval.py"), str(AGENT_JSON),
+           "--seed", str(int(params["seed"])), "--output-dir", str(out),
+           "--record-trajectory" if render else "--no-record-trajectory"]
+    proc = subprocess.Popen(cmd, cwd=LRC, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                            text=True, start_new_session=True)
+    try:
+        log, _ = proc.communicate(timeout=TRIAL_TIMEOUT_S)
+        timed_out = False
+    except subprocess.TimeoutExpired:
+        os.killpg(proc.pid, signal.SIGKILL)
+        log, _ = proc.communicate()
+        timed_out = True
+    results = sorted(out.rglob("evals/*/result.json"))
+    row = _read_json(results[0]) if results else None
+    if row is None:
+        logf = RESULTS / "transcripts" / f"{h}.{AGENT_JSON.stem}.log.txt"
+        logf.parent.mkdir(parents=True, exist_ok=True)
+        logf.write_text(log[-40000:])
+    scene_dir = results[0].parent if results else out
+    mode = "timeout" if timed_out and not (row and row.get("oracle_success")) else _failure_mode(row)
+    transcript = None
+    if row is not None:  # VLAs have no language decisions: keep the outcome and the inference schedule
+        path = RESULTS / "transcripts" / f"{ARTIFACT_PREFIX}{h}.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps({k: row.get(k) for k in (
+            "scene_id", "status", "termination_reason", "oracle_success", "steps", "sim_time_s", "wall_time_s",
+            "progress_score", "final_progress_score", "inference_control_steps", "policy_metadata")},
+            indent=1, default=str))
+        transcript = str(path.relative_to(ROOT))
+    return {
+        "params": dict(params),
+        "success": bool(row and row.get("oracle_success")),
+        "failure_mode": "" if row and row.get("oracle_success") else mode,
+        "n_decisions": len((row or {}).get("inference_control_steps") or []),
+        "t_wall": time.time() - t0,
+        "clip": _safe_clip(scene_dir, h) if render else None,
+        "transcript": transcript,
+    }
 
 
 # ---------------------------------------------------------------- in-venv implementation
@@ -189,7 +249,7 @@ def _write_transcript(decisions, h: str) -> str | None:
             "error": d.get("error", d.get("validation_error")),
             "elapsed_s": d.get("elapsed_s"),
         })
-    path = RESULTS / "transcripts" / f"{h}.json"
+    path = RESULTS / "transcripts" / f"{ARTIFACT_PREFIX}{h}.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(rows, indent=1, default=str))
     return str(path.relative_to(ROOT))
@@ -217,7 +277,7 @@ def _write_clip(scene_dir: Path, h: str) -> str | None:
     step = max(1, int(np.ceil(max(hgt, wid) / CLIP_MAX_SIDE)))
     frames = [f[::step, ::step] for f in frames]
     frames = [f[: f.shape[0] // 2 * 2, : f.shape[1] // 2 * 2] for f in frames]  # even dims for h264
-    path = RESULTS / "clips" / f"{h}.mp4"
+    path = RESULTS / "clips" / f"{ARTIFACT_PREFIX}{h}.mp4"
     path.parent.mkdir(parents=True, exist_ok=True)
     imageio.mimwrite(str(path), frames, fps=out_fps, macro_block_size=1)
     return str(path.relative_to(ROOT))
