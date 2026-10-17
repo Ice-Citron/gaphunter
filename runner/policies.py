@@ -6,7 +6,7 @@ One object per policy row, in POLICIES order, with keys exactly:
     policy, family, model, task, sim, status, n_local, local_success, n_deploy, deploy_success,
     outside_success, local_csv, deploy_csv, notes
 Rates follow analysis.coverage (pass == 1 rows, api_error rows dropped). A rate is null when its n is 0.
-status: "full" = local and deploy trials, "smoke" = some trials, "planned" = no CSV yet.
+status: "full" = n_local >= 20 and n_deploy >= 50, "smoke" = some trials, "planned" = no CSV yet.
 CSV paths are relative to the repo root; a policy's CSV is results/<sim>_<policy>_<local|deploy>.csv
 (policy with "-" or "_"), except astra-script, whose CSVs are results/local.csv and results/deploy.csv.
 """
@@ -85,7 +85,7 @@ def build_row(meta: dict) -> dict:
     if n_deploy:
         # Same rule as coverage_report: outside the local box over its task-relevant params, yaw folded.
         outside = _rate(deploy[~inside_local(deploy, meta.get("local_box") or local_box())])
-    status = "full" if n_local and n_deploy else "smoke" if n_local or n_deploy else "planned"
+    status = "full" if n_local >= 20 and n_deploy >= 50 else "smoke" if n_local or n_deploy else "planned"
     row = {**meta, "status": status, "n_local": n_local, "local_success": _rate(local),
            "n_deploy": n_deploy, "deploy_success": _rate(deploy), "outside_success": outside,
            "local_csv": local_csv, "deploy_csv": deploy_csv}
