@@ -34,11 +34,11 @@ benchmarks yet.
 
 | | success | n |
 |---|---|---|
-| Local benchmark box | **100%** | 30 |
-| Deployment box | **18%** | 150 |
-| Deployment, outside the local box | **16%** | 146 |
+| Local benchmark box | **90%** | 30 |
+| Deployment box | **16%** | 600 |
+| Deployment, outside the local box | **13%** | 586 |
 
-The local benchmark covers 2.1% of the deployment domain by volume (dx × dy × yaw; yaw folded to ±45° by the peg symmetry). The policy succeeds on 100% of local trials (n=30) and 18% of deployment trials (n=150); outside the local box it succeeds on 16% (n=146). Failures concentrate in: dx ∈ [-0.20, -0.13] m (0%, n=25); dx ∈ [+0.13, +0.20] m (0%, n=25); dy ∈ [-0.20, -0.13] m (0%, n=25); dy ∈ [-0.13, -0.07] m (0%, n=25). A benchmark that stopped at the local box would have reported 100% and shipped.
+The local benchmark covers 2.1% of the deployment domain by volume (dx × dy × yaw; yaw folded to ±45° by the peg symmetry). The policy succeeds on 90% of local trials (n=30) and 16% of deployment trials (n=600); outside the local box it succeeds on 13% (n=586). Failures concentrate in: dx ∈ [+0.13, +0.20] m (0%, n=101); dy ∈ [-0.20, -0.13] m (0%, n=100); dy ∈ [+0.13, +0.20] m (0%, n=100); dx ∈ [-0.20, -0.13] m (1%, n=101). A benchmark that stopped at the local box would have reported 90% and shipped.
 
 Yaw is folded to ±45° because the square peg has 90° symmetry (1.0% without folding).
 
@@ -47,7 +47,7 @@ Yaw is folded to ±45° because the square peg has 90° symmetry (1.0% without f
 ```bash
 export GAPHUNTER_SIM=mujoco
 .venv/bin/python -m runner.batch  --box local  --n 30 --tag local  --workers 8
-.venv/bin/python -m runner.batch  --box deploy --n 150 --tag deploy --workers 8 --render-failures 4
+.venv/bin/python -m runner.batch  --box deploy --n 600 --tag deploy --workers 8 --render-failures 4
 .venv/bin/python -m runner.refine --tag deploy --per-cell 10
 .venv/bin/python -m analysis.fill_docs
 .venv/bin/streamlit run app/streamlit_app.py
@@ -58,7 +58,7 @@ Setup: `sim/README.md`.
 ## Limitations
 
 - One task, one policy, simulation only.
-- n = 150, so heatmap cells are noisy.
+- n = 600, so heatmap cells are noisy.
 - Coverage is unweighted box volume.
 - The perception error is our model, chosen to mirror AIC (see the heatmap caption).
 

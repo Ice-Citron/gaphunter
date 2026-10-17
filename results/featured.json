@@ -2,6 +2,6 @@
   "success_clip": "results/clips/b8d5c1ac421725758b8a285483132db2f2f4fd07.mp4",
   "failure_clip": "results/clips/235c47772ad506e957ba5b5372a46d0814261adc.mp4",
   "failure_transcript": "results/transcripts/235c47772ad506e957ba5b5372a46d0814261adc.json",
-  "headline": "At dx = +0.14 m, dy = +0.17 m, hole_pose() puts the hole 17.6 mm from where it is, about 10× the ±1.8 mm that Astra's policy searches around its estimate. The peg ends 17.1 mm off after 227 API calls and never pushes harder than 15 N, so the policy never notices: miss.",
+  "headline": "At dx = {dx:+.2f} m, dy = {dy:+.2f} m, hole_pose() puts the hole {pose_error_mm:.1f} mm from where it is, about {ratio:.0f}× the ±{search_mm:g} mm that Astra's policy searches around its estimate. The peg ends {lateral_mm:.1f} mm off after {api_calls} API calls, with a peak force of {max_force_N:.1f} N, well under the 150 N abort, so the policy never notices: {failure_mode}.",
   "quote": "Because camera-error bounds and contact stiffness are unspecified, small steps and an early force threshold reduce risk but cannot guarantee avoiding the 150 N abort threshold"
 }

@@ -198,6 +198,22 @@ def show_clip(row: dict | None, path_override: str | None, empty_msg: str) -> No
         st.markdown(f'<p class="gh-cap">{cap}</p>', unsafe_allow_html=True)
 
 
+def _headline(feat: dict) -> str | None:
+    """Fill the featured headline template from its transcript, so a rerun can't leave stale numbers."""
+    t = _resolve(feat.get("failure_transcript"))
+    if not feat.get("headline") or t is None:
+        return None
+    try:
+        d = _transcript(str(t), _mtime(t))
+        p, o = d["params"], d["outcome"]
+        from analysis.coverage import SEARCH_RANGE_MM
+        vals = {**p, **o, "search_mm": SEARCH_RANGE_MM,
+                "ratio": o["pose_error_mm"] / SEARCH_RANGE_MM}
+        return feat["headline"].format(**vals)
+    except Exception:
+        return None  # a template/transcript mismatch hides the headline rather than showing wrong numbers
+
+
 def failure_clips(df: pd.DataFrame, featured: str | None) -> list[dict]:
     """Failed rows with an existing clip; the featured clip first."""
     if df.empty or "clip" not in df:
@@ -380,8 +396,9 @@ is_featured = bool(feat.get("failure_clip")) and (
     bad_row is None or str(bad_row.get("clip", "")).endswith(Path(feat["failure_clip"]).name))
 with c3:
     st.subheader("Why it failed")
-    if feat.get("headline") and is_featured:
-        st.markdown(f'<div class="gh-head">{html.escape(feat["headline"])}</div>', unsafe_allow_html=True)
+    head = _headline(feat) if is_featured else None
+    if head:
+        st.markdown(f'<div class="gh-head">{html.escape(head)}</div>', unsafe_allow_html=True)
     with st.expander("What Astra was thinking"):
         if feat.get("quote"):
             st.markdown(f'<blockquote class="gh-quote">“{html.escape(feat["quote"])}”'
