@@ -297,17 +297,26 @@ def tile(col, label: str, value: float, n: int, hero: bool = False) -> None:
                  unsafe_allow_html=True)
 
 
-def rerun_coverage(n: int = 10) -> pd.DataFrame:
+def rerun_backend(source: str) -> str:
+    """Which sim the Re-run button uses. Real results default to the MuJoCo sim, never silently the fake one
+    (sim.trial falls back to fake when GAPHUNTER_SIM is unset)."""
+    if os.environ.get("GAPHUNTER_FAKE_RERUN") == "1":
+        return "fake"
+    return os.environ.get("GAPHUNTER_SIM") or ("mujoco" if source == "real" else "fake")
+
+
+def rerun_coverage(backend: str, n: int = 10) -> pd.DataFrame:
     from runner.batch import run_batch
     from runner.sample import deploy_box, sample_box
 
+    os.environ["GAPHUNTER_SIM"] = backend  # read by sim.trial in the worker processes
     params = sample_box(deploy_box(), n, seed=random.randint(10_000, 1_000_000))
-    bar = st.progress(0.0, text=f"Running 0/{n} trials on the deployment box…")
+    bar = st.progress(0.0, text=f"Running 0/{n} trials on the deployment box ({backend} sim)…")
 
     def progress(done, total):
-        bar.progress(done / total, text=f"Running {done}/{total} trials on the deployment box…")
+        bar.progress(done / total, text=f"Running {done}/{total} trials on the deployment box ({backend} sim)…")
 
-    kw = {"force_fake": True} if os.environ.get("GAPHUNTER_FAKE_RERUN") == "1" else {}
+    kw = {"force_fake": True} if backend == "fake" else {}
     if "progress" in inspect.signature(run_batch).parameters:
         df = run_batch(params, n_workers=2, tag="rerun", progress=progress, **kw)
     else:
@@ -361,16 +370,25 @@ with left:
                 f'local ∕ deployment ({rep["coverage_fraction_all_params"]:.1%} without yaw folding) · '
                 f'rates from the uniform pass only.</p>', unsafe_allow_html=True)
 with right:
-    if st.button("Re-run coverage", type="secondary", help="Runs 10 new trials sampled over the deployment box."):
+    backend = rerun_backend(source)
+    if st.button("Re-run coverage", type="secondary",
+                 help=f"Runs 10 new trials sampled over the deployment box, on the {backend} sim."):
         try:
-            new = rerun_coverage(10)
-            st.session_state["extra"] = pd.concat(
-                [st.session_state.get("extra", pd.DataFrame()), new], ignore_index=True)
+            new = rerun_coverage(backend, 10)
+            if backend == "fake" and source == "real":
+                # Never mix fake-sim trials into real results.
+                st.session_state["fake_rerun"] = new
+            else:
+                st.session_state["extra"] = pd.concat(
+                    [st.session_state.get("extra", pd.DataFrame()), new], ignore_index=True)
             st.rerun()
         except Exception as e:
             st.error(f"Re-run failed: {e}")
     if "extra" in st.session_state:
-        st.caption(f"Includes {len(st.session_state['extra'])} re-run trials from this session.")
+        st.caption(f"Includes {len(st.session_state['extra'])} re-run trials from this session ({backend} sim).")
+    if "fake_rerun" in st.session_state:
+        fr = st.session_state["fake_rerun"]
+        st.caption(f"Fake-sim re-run: {int(fr['success'].sum())}/{len(fr)} succeeded. Not merged into real results.")
 
 feat = _featured()
 c1, c2, c3 = st.columns(3, gap="medium")

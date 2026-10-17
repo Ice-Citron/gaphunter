@@ -17,7 +17,6 @@ success 16% (n=600) · local n=30 · outside n=586.
 
 ## Re-run during recording
 
-A real trial takes minutes, so 10 real trials will not finish inside 20 s. Choose one:
-1. Record the click and the progress bar starting, then cut to the finished page.
-2. Start the app with `GAPHUNTER_FAKE_RERUN=1` so the button uses the fake sim. The narration must not
-   then call those 10 trials Astra.
+With real results loaded, **Re-run coverage** runs 10 trials on the MuJoCo sim in about 4 s, so record it live.
+The caption under the button names the sim. If it ever says "fake", restart the app with `GAPHUNTER_SIM=mujoco`.
+Fake-sim re-runs are never merged into real results.
