@@ -19,7 +19,23 @@
   "policy": "astra-live",
   "family": "LLM closed-loop control",
   "model": "gpt-6-astra",
-  "task": "sphere-in-basket, Franka FR3 (Ditto OddGeometry)",
+  "task": "Ditto Bench task 1 (DittoOddGeometry-v1) easy: pick up the 48 mm sphere and put it in the basket, Franka FR3 + Robotiq 2F-85",
+  "sim": "ditto",
+  "status": "smoke",
+  "n_local": 6,
+  "local_success": 0.0,
+  "n_deploy": 0,
+  "deploy_success": null,
+  "outside_success": null,
+  "local_csv": "results/ditto_astra_live_local.csv",
+  "deploy_csv": null,
+  "notes": "Astra drives the arm live, one decision per step, 30 Hz control, 450-step budget, 25-decision cap. Nominal placement only; local-only row."
+ },
+ {
+  "policy": "molmoact2",
+  "family": "VLA",
+  "model": "MolmoAct2-DROID",
+  "task": "Ditto Bench task 1 (DittoOddGeometry-v1) easy: pick up the 48 mm sphere and put it in the basket, Franka FR3 + Robotiq 2F-85",
   "sim": "ditto",
   "status": "planned",
   "n_local": 0,
@@ -29,30 +45,14 @@
   "outside_success": null,
   "local_csv": null,
   "deploy_csv": null,
-  "notes": "Astra called every decision via llms-for-robot-control; smoke test only."
- },
- {
-  "policy": "molmoact2",
-  "family": "VLA",
-  "model": "MolmoAct2",
-  "task": null,
-  "sim": null,
-  "status": "planned",
-  "n_local": 0,
-  "local_success": null,
-  "n_deploy": 0,
-  "deploy_success": null,
-  "outside_success": null,
-  "local_csv": null,
-  "deploy_csv": null,
-  "notes": "planned until Agent A delivers"
+  "notes": "Native MolmoAct2-DROID checkpoint, 15 Hz, 450 steps."
  },
  {
   "policy": "pi05",
   "family": "VLA",
-  "model": "pi0.5",
-  "task": null,
-  "sim": null,
+  "model": "pi0.5-DROID",
+  "task": "Ditto Bench task 1 (DittoOddGeometry-v1) easy: pick up the 48 mm sphere and put it in the basket, Franka FR3 + Robotiq 2F-85",
+  "sim": "ditto",
   "status": "planned",
   "n_local": 0,
   "local_success": null,
@@ -61,7 +61,7 @@
   "outside_success": null,
   "local_csv": null,
   "deploy_csv": null,
-  "notes": "planned until Agent A delivers"
+  "notes": "Native pi0.5-DROID, 450 steps."
  },
  {
   "policy": "gemini-robotics",

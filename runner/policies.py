@@ -23,18 +23,25 @@ from runner.sample import local_box
 
 OUT = RESULTS / "policies.json"
 
+DITTO_TASK = ("Ditto Bench task 1 (DittoOddGeometry-v1) easy: pick up the 48 mm sphere and put it in the basket, "
+              "Franka FR3 + Robotiq 2F-85")
+# Reach-limited Ditto local box (Agent A); "outside the local box" for Ditto rows is measured against it.
+DITTO_LOCAL_BOX = {"dx": (-0.05, 0.05), "dy": (-0.02, 0.05), "yaw": (-15.0, 15.0)}
+
+# "local_box" is used for outside_success only and is not written to the JSON.
 POLICIES = [
     {"policy": "astra-script", "family": "LLM-written policy code", "model": "gpt-6-astra",
-     "task": "peg-in-hole, UR5e", "sim": "mujoco",
+     "task": "peg-in-hole, UR5e", "sim": "mujoco", "local_box": local_box(),
      "local_csv": "results/local.csv", "deploy_csv": "results/deploy.csv",
      "notes": "Astra writes policy.py once (results/policies/v1.py); it runs unchanged on every trial."},
     {"policy": "astra-live", "family": "LLM closed-loop control", "model": "gpt-6-astra",
-     "task": "sphere-in-basket, Franka FR3 (Ditto OddGeometry)", "sim": "ditto",
-     "notes": "Astra called every decision via llms-for-robot-control; smoke test only."},
-    {"policy": "molmoact2", "family": "VLA", "model": "MolmoAct2", "task": None, "sim": None,
-     "notes": "planned until Agent A delivers"},
-    {"policy": "pi05", "family": "VLA", "model": "pi0.5", "task": None, "sim": None,
-     "notes": "planned until Agent A delivers"},
+     "task": DITTO_TASK, "sim": "ditto", "local_box": DITTO_LOCAL_BOX,
+     "notes": "Astra drives the arm live, one decision per step, 30 Hz control, 450-step budget, "
+              "25-decision cap. Nominal placement only; local-only row."},
+    {"policy": "molmoact2", "family": "VLA", "model": "MolmoAct2-DROID", "task": DITTO_TASK, "sim": "ditto",
+     "local_box": DITTO_LOCAL_BOX, "notes": "Native MolmoAct2-DROID checkpoint, 15 Hz, 450 steps."},
+    {"policy": "pi05", "family": "VLA", "model": "pi0.5-DROID", "task": DITTO_TASK, "sim": "ditto",
+     "local_box": DITTO_LOCAL_BOX, "notes": "Native pi0.5-DROID, 450 steps."},
     {"policy": "gemini-robotics", "family": "VLA", "model": "Gemini Robotics", "task": None, "sim": None,
      "notes": "planned"},
     {"policy": "gr00t", "family": "VLA", "model": "GR00T", "task": None, "sim": None,
@@ -77,7 +84,7 @@ def build_row(meta: dict) -> dict:
     outside = None
     if n_deploy:
         # Same rule as coverage_report: outside the local box over its task-relevant params, yaw folded.
-        outside = _rate(deploy[~inside_local(deploy, local_box())])
+        outside = _rate(deploy[~inside_local(deploy, meta.get("local_box") or local_box())])
     status = "full" if n_local and n_deploy else "smoke" if n_local or n_deploy else "planned"
     row = {**meta, "status": status, "n_local": n_local, "local_success": _rate(local),
            "n_deploy": n_deploy, "deploy_success": _rate(deploy), "outside_success": outside,
