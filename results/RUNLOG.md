@@ -6,3 +6,8 @@ Chosen n: n_local = 30 · n_deploy = TBD  (floor(35 min × workers / t_trial), c
 ## Fake-sim baseline (runner.fake, not real data)
 `python -m runner.batch --box local --n 30 --tag fake_local --fake` → 30/30 (100%)
 `python -m runner.batch --box deploy --n 100 --tag fake_deploy --fake --render-failures 4` → 10/100 (10%), miss=74, timeout=16
+
+## How to run (real sim)
+Run from the project `.venv/bin/python`, NOT the framework venv: only the re-exec path has the
+240 s per-trial timeout (`GAPHUNTER_TRIAL_TIMEOUT_S`). Enable the real backend with `GAPHUNTER_SIM=ditto`.
+`GAPHUNTER_SIM=ditto .venv/bin/python -m runner.batch --box local --n 5 --tag probe --workers 1`

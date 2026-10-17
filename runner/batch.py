@@ -56,9 +56,9 @@ def _work(job: tuple[int, dict, bool]) -> tuple[int, dict]:
     try:
         res = dataclasses.asdict(_run_trial(dict(params), render=render))
     except Exception:
-        # A crash counts as a failed trial; the batch keeps going.
+        # A crash counts as a failed trial; the batch keeps going. "api_error" matches sim.trial's crash label.
         print(f"ERROR trial {i} {params}:\n{traceback.format_exc()}", file=sys.stderr)
-        res = {"params": params, "success": False, "failure_mode": "error", "n_decisions": 0,
+        res = {"params": params, "success": False, "failure_mode": "api_error", "n_decisions": 0,
                "t_wall": time.time() - t0, "clip": None, "transcript": None}
     row = {k: params.get(k) for k in ("dx", "dy", "yaw", "seed")}
     row.update({k: res.get(k) for k in COLUMNS[4:]})
