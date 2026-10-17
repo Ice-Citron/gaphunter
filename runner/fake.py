@@ -1,4 +1,4 @@
-"""Fake sim: success iff |dx|<0.08 and |dy|<0.08 and |yaw|<30, with 5% seeded flips."""
+"""Fake sim: success iff |dx|<0.12 and |dy|<0.12 and |yaw|<45, with 5% seeded flips."""
 from __future__ import annotations
 
 import random
@@ -22,12 +22,12 @@ except ImportError:  # sim.trial missing, or mid-import (sim.trial re-exports th
 
 
 def fake_run_trial(params: dict, render: bool = False) -> TrialResult:
-    ok = abs(params["dx"]) < 0.08 and abs(params["dy"]) < 0.08 and abs(params["yaw"]) < 30
+    ok = abs(params["dx"]) < 0.12 and abs(params["dy"]) < 0.12 and abs(params["yaw"]) < 45
     rng = random.Random(params["seed"])
     ok = (not ok) if rng.random() < 0.05 else ok
     if ok:
         mode = ""
-    elif abs(params["dx"]) >= 0.08 or abs(params["dy"]) >= 0.08:
+    elif abs(params["dx"]) >= 0.12 or abs(params["dy"]) >= 0.12:
         mode = "miss"
     else:
         mode = "timeout"
