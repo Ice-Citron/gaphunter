@@ -4,20 +4,20 @@
 
 ![Success-rate heatmap; dashed box = local benchmark](results/heatmap.png)
 
-*`hole_pose()` error is a modelled r³ distortion (0.2 mm at 5 cm, 12.8 mm at 20 cm, plus per-trial noise)
+*`hole_pose()` error is a modelled r³ distortion (0.2 mm at 5 cm, 12.8 mm at 20 cm, plus noise)
 mirroring the AIC calibration radius, not a measured camera effect.*
 
 ## Problem
 
-In Intrinsic AIC 2026 our policy scored 141 on our local benchmark and 89 on the hidden evaluation.
+In Intrinsic AIC 2026 our policy scored 141 locally and 89 on the hidden evaluation.
 The local scenes randomised the board over a radius a third smaller than the real one.
 The benchmark never tested where the policy fails.
 
 ## What GapHunter does
 
 **Sample → run → map → report.** GapHunter samples the hole offset (`dx`, `dy`, yaw) from the
-benchmark's box and a wider deployment box, runs the policy on each sample in simulation, and maps where
-it fails. Task: MuJoCo peg-in-hole on a UR5e, a 20 mm square peg into a 21 mm hole. Success is depth ≥ 30 mm with lateral error < 1 mm.
+benchmark's box and a wider deployment box, runs the policy on each sample, and maps where
+it fails. Task: MuJoCo UR5e peg-in-hole, 20 mm square peg, 21 mm hole. Success is depth ≥ 30 mm with lateral error < 1 mm.
 
 ## Why Astra as the policy
 
@@ -72,9 +72,8 @@ Details: `sim/README.md`.
 ## Limitations
 
 - One task, one policy, simulation only.
-- n = {n_deploy}, so heatmap cells are noisy.
 - Coverage is unweighted box volume.
-- The perception error is our model, chosen to mirror AIC (see the heatmap caption).
+- The perception error is modelled (see the heatmap caption).
 
 **First attempt:** Astra driving a Franka on Ditto Bench's sphere-in-basket task failed our go/no-go gate: 0 of 6 nominal-placement trials succeeded.
 
