@@ -32,6 +32,12 @@ h2 { font-size: clamp(28px, 4vw, 44px); letter-spacing: -.03em; line-height: 1.1
 .num.hero .v { font-size: clamp(88px, 15vw, 184px); color: var(--accent); font-weight: 650; }
 .num .l { color: var(--muted); font-size: 15px; margin-top: 12px; }
 .num .n { color: var(--faint); font-size: 13px; font-variant-numeric: tabular-nums; }
+.num.hero .v.none { color: var(--faint); font-size: clamp(40px, 6vw, 64px); }
+.seg { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 32px; }
+.seg button { font: inherit; font-size: 14px; color: var(--muted); background: transparent; border: 1px solid var(--line);
+              border-radius: 999px; padding: 6px 14px; cursor: pointer; }
+.seg button:hover { color: var(--ink); }
+.seg button[aria-selected="true"] { color: var(--ink); background: var(--panel); border-color: var(--faint); }
 figure { margin: 0; }
 figure img { width: 100%; height: auto; display: block; border-radius: 12px; border: 1px solid var(--line); }
 figcaption { color: var(--muted); font-size: 14px; margin-top: 16px; }
@@ -74,20 +80,32 @@ footer li { margin-bottom: 10px; }
 </section>
 
 <section>
-  <p class="eyebrow">astra-script · 30 local · 600 deployment trials</p>
+  <div class="seg" role="tablist"><button data-i="0" role="tab">astra-script</button><button data-i="1" role="tab">astra-live</button></div>
+  <p class="eyebrow" id="v-eyebrow"></p>
   <div class="nums">
-    <div class="num hero"><div class="v">13%</div><div class="l">success outside the local box</div><div class="n">n = 586</div></div>
-    <div class="num"><div class="v">90%</div><div class="l">inside the benchmark</div><div class="n">n = 30</div></div>
-    <div class="num"><div class="v">16%</div><div class="l">over the deployment box</div><div class="n">n = 600</div></div>
+    <div class="num hero"><div class="v" id="v-out"></div><div class="l">success outside the local box</div><div class="n" id="v-nout"></div></div>
+    <div class="num"><div class="v" id="v-loc"></div><div class="l">inside the benchmark</div><div class="n" id="v-nloc"></div></div>
+    <div class="num"><div class="v" id="v-dep"></div><div class="l">over the deployment box</div><div class="n" id="v-ndep"></div></div>
   </div>
-</section>
-
-<section>
-  <figure>
-    <img src="assets/heatmap.png" alt="Success-rate heatmap, success by dy, and success by perception error; dashed box = local benchmark" loading="lazy">
-    <figcaption><code>hole_pose()</code> error is a modelled r³ distortion mirroring the AIC calibration radius, not a measured camera effect. The local benchmark covers 2.1% of the deployment domain by volume (dx × dy × yaw; yaw folded to ±45° by the peg symmetry). The policy succeeds on 90% of local trials (n=30) and 16% of deployment trials (n=600); outside the local box it succeeds on 13% (n=586). Failures concentrate in: dx ∈ [+0.13, +0.20] m (0%, n=101); dy ∈ [-0.20, -0.13] m (0%, n=100); dy ∈ [+0.13, +0.20] m (0%, n=100); dx ∈ [-0.20, -0.13] m (1%, n=101). A benchmark that stopped at the local box would have reported 90% and shipped.</figcaption>
+  <figure style="margin-top:64px">
+    <img id="v-img" alt="Success-rate heatmap, success by dy, and success by perception error; dashed box = local benchmark">
+    <figcaption><span id="v-note"></span> <span id="v-text"></span></figcaption>
   </figure>
 </section>
+<script>
+const VIEWS = [{"id": "astra-script", "status": "full", "img": "assets/heatmap_astra-script.png", "eyebrow": "astra-script \u00b7 full \u00b7 30 local \u00b7 600 deployment trials", "out": "13%", "nout": "n = 586", "loc": "90%", "nloc": "n = 30", "dep": "16%", "ndep": "n = 600", "note": "hole_pose() error is a modelled r\u00b3 distortion mirroring the AIC calibration radius, not a measured camera effect.", "text": "The local benchmark covers 2.1% of the deployment domain by volume (dx \u00d7 dy \u00d7 yaw; yaw folded to \u00b145\u00b0 by the peg symmetry). The policy succeeds on 90% of local trials (n=30) and 16% of deployment trials (n=600); outside the local box it succeeds on 13% (n=586). Failures concentrate in: dx \u2208 [+0.13, +0.20] m (0%, n=101); dy \u2208 [-0.20, -0.13] m (0%, n=100); dy \u2208 [+0.13, +0.20] m (0%, n=100); dx \u2208 [-0.20, -0.13] m (1%, n=101). A benchmark that stopped at the local box would have reported 90% and shipped."}, {"id": "astra-live", "status": "smoke", "img": "assets/heatmap_astra-live.png", "eyebrow": "astra-live \u00b7 smoke \u00b7 8 local \u00b7 0 deployment trials", "out": "not run", "nout": "n = 0", "loc": "0%", "nloc": "n = 8", "dep": "not run", "ndep": "n = 0", "note": "", "text": "Smoke run: 0 of 8 local trials succeeded; no deployment trials yet."}];
+function show(k) {
+  const v = VIEWS[k];
+  document.querySelectorAll(".seg button").forEach((b, i) => b.setAttribute("aria-selected", i === k));
+  for (const [id, key] of [["v-eyebrow","eyebrow"],["v-out","out"],["v-nout","nout"],["v-loc","loc"],["v-nloc","nloc"],
+                           ["v-dep","dep"],["v-ndep","ndep"],["v-note","note"],["v-text","text"]])
+    document.getElementById(id).textContent = v[key];
+  document.getElementById("v-out").classList.toggle("none", v.out === "not run");
+  document.getElementById("v-img").src = v.img;
+}
+document.querySelectorAll(".seg button").forEach(b => b.addEventListener("click", () => show(+b.dataset.i)));
+show(0);
+</script>
 
 <section>
   <h2>Policies compared</h2>

@@ -87,7 +87,46 @@ def _short_task(task: str) -> str:
     return "Ditto sphere-in-basket, Franka" if "sphere" in t and "basket" in t else t
 
 
-def build() -> Path:
+def _views(lb: dict, db: dict, model_note: str, policies_path: str) -> list[dict]:
+    """One view per selectable policy row (full or smoke, with a CSV): numbers, gap text and its own figure."""
+    from analysis.coverage import heatmap, load_policies
+    try:
+        from runner.policies import POLICIES
+        boxes = {m["policy"]: m["local_box"] for m in POLICIES if m.get("local_box")}
+    except Exception:
+        boxes = {}
+    empty = pd.DataFrame(columns=["dx", "dy", "yaw", "success"])
+    views = []
+    for pol in load_policies(policies_path, root=str(ROOT)):
+        status = str(pol.get("status") or "planned").lower()
+        frames = {k: pd.read_csv(ROOT / pol[k]) for k in ("local_csv", "deploy_csv")
+                  if pol.get(k) and (ROOT / pol[k]).is_file()}
+        if status == "planned" or not frames:
+            continue
+        pid = pol["policy"]
+        ldf, ddf = frames.get("local_csv", empty), frames.get("deploy_csv", empty)
+        box = boxes.get(pid, lb)
+        r = coverage_report(ldf, ddf, box, db)
+        ASSETS.mkdir(parents=True, exist_ok=True)
+        img = ASSETS / f"heatmap_{re.sub(r'[^A-Za-z0-9_-]', '_', pid)}.png"
+        heatmap(pd.concat([ldf, ddf], ignore_index=True), local_box=box, deploy_box=db, path=str(img), policy=pid)
+        pct = lambda v, n: f"{v:.0%}" if n else "not run"  # noqa: E731
+        if r["n_deploy"]:
+            text = r["text"]
+        else:
+            k = int(round(r["local_success"] * r["n_local"])) if r["n_local"] else 0
+            text = f"Smoke run: {k} of {r['n_local']} local trials succeeded; no deployment trials yet."
+        has_err = "pose_error_mm" in ddf and ddf["pose_error_mm"].notna().any()
+        views.append({"id": pid, "status": status, "img": f"assets/{img.name}",
+                      "eyebrow": f"{pid} · {status} · {r['n_local']} local · {r['n_deploy']} deployment trials",
+                      "out": pct(r["outside_local_success"], r["n_outside"]), "nout": f"n = {r['n_outside']}",
+                      "loc": pct(r["local_success"], r["n_local"]), "nloc": f"n = {r['n_local']}",
+                      "dep": pct(r["deploy_success"], r["n_deploy"]), "ndep": f"n = {r['n_deploy']}",
+                      "note": re.sub(r"`", "", model_note) if has_err else "", "text": text})
+    return views
+
+
+def build(policies_path: str = "results/policies.json", out_name: str = "index.html") -> Path:
     md = _readme()
     lb, db = default_boxes()
     ldf, ddf = pd.read_csv(ROOT / "results/local.csv"), pd.read_csv(ROOT / "results/deploy.csv")
@@ -102,11 +141,12 @@ def build() -> Path:
     axioms = [re.sub(r"^\d+\.\s*", "", line) for line in _section(md, "Two axioms").splitlines() if line.strip()]
     caption = re.search(r"^\*(`hole_pose\(\)`.+?)\*$", md, re.M).group(1)
 
-    fig = _copy("results/heatmap.png")
+    views = _views(lb, db, caption, policies_path)
+    default_view = next((k for k, v in enumerate(views) if v["status"] == "full"), 0)
     ok_clip, bad_clip = _copy(feat.get("success_clip")), _copy(feat.get("failure_clip"))
     head = _headline(feat) or ""
 
-    table = policy_table("results/policies.json", root=str(ROOT), local_box=lb, deploy_box=db)
+    table = policy_table(policies_path, root=str(ROOT), local_box=lb, deploy_box=db)
     trs = []
     for _, row in table.iterrows():
         cls = ' class="planned"' if row["status"] == "planned" else ""
@@ -166,6 +206,12 @@ h2 {{ font-size: clamp(28px, 4vw, 44px); letter-spacing: -.03em; line-height: 1.
 .num.hero .v {{ font-size: clamp(88px, 15vw, 184px); color: var(--accent); font-weight: 650; }}
 .num .l {{ color: var(--muted); font-size: 15px; margin-top: 12px; }}
 .num .n {{ color: var(--faint); font-size: 13px; font-variant-numeric: tabular-nums; }}
+.num.hero .v.none {{ color: var(--faint); font-size: clamp(40px, 6vw, 64px); }}
+.seg {{ display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 32px; }}
+.seg button {{ font: inherit; font-size: 14px; color: var(--muted); background: transparent; border: 1px solid var(--line);
+              border-radius: 999px; padding: 6px 14px; cursor: pointer; }}
+.seg button:hover {{ color: var(--ink); }}
+.seg button[aria-selected="true"] {{ color: var(--ink); background: var(--panel); border-color: var(--faint); }}
 figure {{ margin: 0; }}
 figure img {{ width: 100%; height: auto; display: block; border-radius: 12px; border: 1px solid var(--line); }}
 figcaption {{ color: var(--muted); font-size: 14px; margin-top: 16px; }}
@@ -208,20 +254,32 @@ footer li {{ margin-bottom: 10px; }}
 </section>
 
 <section>
-  <p class="eyebrow">{html.escape(str(table.iloc[0]["policy"]) if len(table) else "")} · {r['n_local']} local · {r['n_deploy']} deployment trials</p>
+  <div class="seg" role="tablist">{"".join(f'<button data-i="{k}" role="tab">{html.escape(v["id"])}</button>' for k, v in enumerate(views))}</div>
+  <p class="eyebrow" id="v-eyebrow"></p>
   <div class="nums">
-    <div class="num hero"><div class="v">{r['outside_local_success']:.0%}</div><div class="l">success outside the local box</div><div class="n">n = {r['n_outside']}</div></div>
-    <div class="num"><div class="v">{r['local_success']:.0%}</div><div class="l">inside the benchmark</div><div class="n">n = {r['n_local']}</div></div>
-    <div class="num"><div class="v">{r['deploy_success']:.0%}</div><div class="l">over the deployment box</div><div class="n">n = {r['n_deploy']}</div></div>
+    <div class="num hero"><div class="v" id="v-out"></div><div class="l">success outside the local box</div><div class="n" id="v-nout"></div></div>
+    <div class="num"><div class="v" id="v-loc"></div><div class="l">inside the benchmark</div><div class="n" id="v-nloc"></div></div>
+    <div class="num"><div class="v" id="v-dep"></div><div class="l">over the deployment box</div><div class="n" id="v-ndep"></div></div>
   </div>
-</section>
-
-<section>
-  <figure>
-    {f'<img src="{fig}" alt="Success-rate heatmap, success by dy, and success by perception error; dashed box = local benchmark" loading="lazy">' if fig else ""}
-    <figcaption>{_inline(caption)} {html.escape(r['text'])}</figcaption>
+  <figure style="margin-top:64px">
+    <img id="v-img" alt="Success-rate heatmap, success by dy, and success by perception error; dashed box = local benchmark">
+    <figcaption><span id="v-note"></span> <span id="v-text"></span></figcaption>
   </figure>
 </section>
+<script>
+const VIEWS = {json.dumps(views)};
+function show(k) {{
+  const v = VIEWS[k];
+  document.querySelectorAll(".seg button").forEach((b, i) => b.setAttribute("aria-selected", i === k));
+  for (const [id, key] of [["v-eyebrow","eyebrow"],["v-out","out"],["v-nout","nout"],["v-loc","loc"],["v-nloc","nloc"],
+                           ["v-dep","dep"],["v-ndep","ndep"],["v-note","note"],["v-text","text"]])
+    document.getElementById(id).textContent = v[key];
+  document.getElementById("v-out").classList.toggle("none", v.out === "not run");
+  document.getElementById("v-img").src = v.img;
+}}
+document.querySelectorAll(".seg button").forEach(b => b.addEventListener("click", () => show(+b.dataset.i)));
+show({default_view});
+</script>
 
 <section>
   <h2>Policies compared</h2>
@@ -253,7 +311,7 @@ footer li {{ margin-bottom: 10px; }}
 """
     DOCS.mkdir(exist_ok=True)
     (DOCS / ".nojekyll").write_text("")
-    out = DOCS / "index.html"
+    out = DOCS / out_name
     out.write_text(page)
     return out
 

@@ -255,7 +255,7 @@ def _error_panel(ax, df, succ, cmap, col, search_mm, per_side=4) -> None:
 
 def heatmap(df, x="dx", y="dy", local_box=None, path="results/heatmap.png", deploy_box=None,
             bins=8, marginal="dy", marginal_bins=7, error_col="pose_error_mm",
-            search_mm=SEARCH_RANGE_MM) -> str:
+            search_mm=SEARCH_RANGE_MM, policy="Astra policy") -> str:
     """2-D success grid over (x, y), a 1-D success marginal over `marginal`, and success vs the
     perception error `error_col` with the policy's search range marked. Uses all rows (both passes):
     each bin's rate is conditional on the bin, so the refinement pass sharpens it without biasing it."""
@@ -324,7 +324,7 @@ def heatmap(df, x="dx", y="dy", local_box=None, path="results/heatmap.png", depl
     ax.set_ylim(ylo, yhi)
     ax.set_xlabel(f"{x} offset ({UNITS[x]})", color=INK, fontsize=10)
     ax.set_ylabel(f"{y} offset ({UNITS[y]})", color=INK, fontsize=10)
-    ax.set_title("Success rate, Astra policy — deployment domain", color=INK, fontsize=12, loc="left")
+    ax.set_title(f"Success rate, {policy} — deployment domain", color=INK, fontsize=12, loc="left")
     cb = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.03)
     cb.ax.tick_params(colors=MUTED, labelsize=9)
     cb.outline.set_edgecolor("#30343c")

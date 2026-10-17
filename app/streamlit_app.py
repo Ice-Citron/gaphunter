@@ -137,8 +137,9 @@ def load_data() -> tuple[pd.DataFrame, pd.DataFrame, str]:
 
 
 @st.cache_data
-def _heatmap_png(df: pd.DataFrame, path: str, code_mtime: float, lb: dict, db: dict) -> bytes | None:
-    heatmap(df, local_box=lb, deploy_box=db, path=path)
+def _heatmap_png(df: pd.DataFrame, path: str, code_mtime: float, lb: dict, db: dict,
+                 policy: str = "Astra policy") -> bytes | None:
+    heatmap(df, local_box=lb, deploy_box=db, path=path, policy=policy)
     return Path(path).read_bytes()
 
 
@@ -457,7 +458,7 @@ tile(t3, "success over the deployment box", rep["deploy_success"], rep["n_deploy
 hm_path = RESULTS / (f"heatmap_app_{pid}.png" if source == "real" else "heatmap_fake.png")
 all_df = pd.concat([local_df, deploy_df], ignore_index=True)
 try:
-    png = _heatmap_png(all_df, str(hm_path), _mtime(ROOT / "analysis" / "coverage.py"), lb, db) if len(all_df) else None
+    png = _heatmap_png(all_df, str(hm_path), _mtime(ROOT / "analysis" / "coverage.py"), lb, db, pid) if len(all_df) else None
 except Exception as e:
     png = None
     st.caption(f"Heatmap failed: {e}")
