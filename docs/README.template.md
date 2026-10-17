@@ -32,15 +32,16 @@ benchmarks yet.
 
 ## Results
 
-| | success | n |
-|---|---|---|
-| Local benchmark box | **{local_success}** | {n_local} |
-| Deployment box | **{deploy_success}** | {n_deploy} |
-| Deployment, outside the local box | **{outside_success}** | {n_outside} |
-
 {gap_paragraph}
 
-Yaw is folded to ±45° because the square peg has 90° symmetry ({coverage_all} without folding).
+Yaw is folded to ±45° by the square peg's symmetry ({coverage_all} unfolded).
+
+## Policies compared
+
+{policy_table}
+
+The harness takes any `run_trial(params) -> TrialResult`, so every policy gets the same sampling, map and report.
+{policy_status}
 
 ## How to reproduce
 

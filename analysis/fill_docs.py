@@ -16,7 +16,8 @@ from pathlib import Path
 
 import pandas as pd
 
-from analysis.coverage import _range, coverage_report, default_boxes, first_pass
+from analysis.coverage import (_range, coverage_report, default_boxes, first_pass, policy_status_sentence,
+                               policy_table, policy_table_markdown)
 
 ROOT = Path(__file__).resolve().parents[1]
 DOCS = ("README.md", "VIDEO_SCRIPT.md")
@@ -85,7 +86,29 @@ def values(local_csv: Path, deploy_csv: Path) -> tuple[dict, list[str]]:
         "{deploy_box}": box_text(db),
         "{gap_paragraph}": r["text"],
     }
+    table = policy_table("results/policies.json", root=str(ROOT), local_box=lb, deploy_box=db)
+    if table.empty:
+        warns.append("results/policies.json missing or empty; policy table falls back to the Astra v1 row from the CSVs")
+        fallback = {"id": "astra-v1", "name": "Astra v1", "family": "LLM-written code",
+                    "task": "MuJoCo UR5e peg-in-hole", "status": "full",
+                    "local_csv": str(local_csv.relative_to(ROOT)), "deploy_csv": str(deploy_csv.relative_to(ROOT))}
+        from analysis.coverage import POLICY_COLUMNS, policy_row
+        table = pd.DataFrame([policy_row(fallback, str(ROOT), lb, db)], columns=POLICY_COLUMNS + ["id"])
+    vals["{policy_table}"] = policy_table_markdown(table)
+    vals["{policy_status}"] = policy_status_sentence(table)
     return vals, warns
+
+
+def prose_words(md: str) -> int:
+    """Words outside fenced code blocks and table rows (Shi Hao: code does not count; tables are data)."""
+    words, in_code = 0, False
+    for line in md.splitlines():
+        if line.startswith("```"):
+            in_code = not in_code
+            continue
+        if not in_code and not line.lstrip().startswith("|"):
+            words += len(line.split())
+    return words
 
 
 def main() -> None:
@@ -95,7 +118,7 @@ def main() -> None:
     prefix = "fake_" if a.fake else ""
     vals, warns = values(ROOT / f"results/{prefix}local.csv", ROOT / f"results/{prefix}deploy.csv")
     for k, v in vals.items():
-        print(f"{k:18} {v}")
+        print(f"{k:18} {v if k != '{policy_table}' else chr(10) + v}")
     for w in warns:
         print(f"WARN {w}", file=sys.stderr)
     for name in DOCS:
@@ -108,6 +131,11 @@ def main() -> None:
         else:
             (ROOT / name).write_text(s)
             print(f"{name}: written" + (f", unfilled {left}" if left else ""))
+        if name == "README.md":
+            n = prose_words(s)
+            print(f"README prose words (code blocks and tables excluded): {n}")
+            if n > 500:
+                print(f"WARN README prose is {n} words, over 500", file=sys.stderr)
 
 
 if __name__ == "__main__":

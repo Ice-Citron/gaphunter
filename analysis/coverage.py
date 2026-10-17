@@ -381,3 +381,77 @@ if __name__ == "__main__":
     rep = coverage_report(ldf, ddf, lb, db)
     print(rep["text"])
     print(heatmap(pd.concat([ldf, ddf], ignore_index=True), local_box=lb, deploy_box=db))
+
+
+# --- policy comparison --------------------------------------------------------------------------------------
+POLICY_COLUMNS = ["policy", "family", "task", "n local", "local success", "n deploy", "deploy success",
+                  "outside-box success", "status"]
+_NUMERIC = POLICY_COLUMNS[3:8]
+
+
+def load_policies(path="results/policies.json", root=".") -> list[dict]:
+    import json
+    p = os.path.join(root, path)
+    if not os.path.exists(p):
+        return []
+    data = json.load(open(p))
+    return data["policies"] if isinstance(data, dict) else data
+
+
+def _cell(k: int, n: int, smoke: bool) -> str:
+    if n == 0:
+        return "no trials"
+    return f"{k}/{n} ({k / n:.0%})" if smoke else f"{k / n:.0%}"
+
+
+def policy_row(pol: dict, root=".", local_box=None, deploy_box=None) -> dict:
+    """One table row. Planned rows say "planned" in every numeric cell, never a dash that could read as zero.
+    Smoke rows carry their n inside each success cell."""
+    status = str(pol.get("status", "planned")).lower()
+    row = {"policy": pol.get("name", pol.get("id", "?")), "family": pol.get("family", ""),
+           "task": pol.get("task", ""), "status": status, "id": pol.get("id", pol.get("name", "?"))}
+    if status == "planned":
+        return {**row, **{c: "planned" for c in _NUMERIC}}
+
+    def read(key):
+        f = pol.get(key)
+        if not f or not os.path.exists(os.path.join(root, f)):
+            return None
+        return pd.read_csv(os.path.join(root, f))
+
+    ldf, ddf = read("local_csv"), read("deploy_csv")
+    smoke = status == "smoke"
+    empty = pd.DataFrame(columns=["dx", "dy", "yaw", "success"])
+    r = coverage_report(ldf if ldf is not None else empty, ddf if ddf is not None else empty,
+                        local_box, deploy_box)
+    k = lambda rate, n: int(round(rate * n)) if n else 0  # noqa: E731
+    row["n local"] = str(r["n_local"]) if ldf is not None else "not run"
+    row["local success"] = _cell(k(r["local_success"], r["n_local"]), r["n_local"], smoke) if ldf is not None else "not run"
+    row["n deploy"] = str(r["n_deploy"]) if ddf is not None else "not run"
+    row["deploy success"] = _cell(k(r["deploy_success"], r["n_deploy"]), r["n_deploy"], smoke) if ddf is not None else "not run"
+    row["outside-box success"] = (_cell(k(r["outside_local_success"], r["n_outside"]), r["n_outside"], smoke)
+                                  if ddf is not None else "not run")
+    return row
+
+
+def policy_table(path="results/policies.json", root=".", local_box=None, deploy_box=None) -> pd.DataFrame:
+    rows = [policy_row(p, root, local_box, deploy_box) for p in load_policies(path, root)]
+    return pd.DataFrame(rows, columns=POLICY_COLUMNS + ["id"])
+
+
+def policy_table_markdown(table: pd.DataFrame) -> str:
+    cols = POLICY_COLUMNS
+    out = ["| " + " | ".join(cols) + " |", "|" + "|".join("---" for _ in cols) + "|"]
+    for _, r in table.iterrows():
+        out.append("| " + " | ".join(str(r[c]).replace("|", "/") for c in cols) + " |")
+    return "\n".join(out)
+
+
+def policy_status_sentence(table: pd.DataFrame) -> str:
+    words = {0: "none", 1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six", 7: "seven", 8: "eight"}
+    c = table["status"].value_counts()
+    n = lambda s: words.get(int(c.get(s, 0)), str(int(c.get(s, 0))))  # noqa: E731
+    parts = [f"{n('full')} {'row is' if c.get('full', 0) == 1 else 'rows are'} full",
+             f"{n('smoke')} {'is a' if c.get('smoke', 0) == 1 else 'are'} smoke {'run' if c.get('smoke', 0) == 1 else 'runs'}",
+             "the rest are planned" if c.get("planned", 0) else "none are planned"]
+    return f"Today {parts[0]}, {parts[1]}, and {parts[2]}."

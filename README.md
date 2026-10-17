@@ -32,15 +32,23 @@ benchmarks yet.
 
 ## Results
 
-| | success | n |
-|---|---|---|
-| Local benchmark box | **90%** | 30 |
-| Deployment box | **16%** | 600 |
-| Deployment, outside the local box | **13%** | 586 |
-
 The local benchmark covers 2.1% of the deployment domain by volume (dx × dy × yaw; yaw folded to ±45° by the peg symmetry). The policy succeeds on 90% of local trials (n=30) and 16% of deployment trials (n=600); outside the local box it succeeds on 13% (n=586). Failures concentrate in: dx ∈ [+0.13, +0.20] m (0%, n=101); dy ∈ [-0.20, -0.13] m (0%, n=100); dy ∈ [+0.13, +0.20] m (0%, n=100); dx ∈ [-0.20, -0.13] m (1%, n=101). A benchmark that stopped at the local box would have reported 90% and shipped.
 
-Yaw is folded to ±45° because the square peg has 90° symmetry (1.0% without folding).
+Yaw is folded to ±45° by the square peg's symmetry (1.0% unfolded).
+
+## Policies compared
+
+| policy | family | task | n local | local success | n deploy | deploy success | outside-box success | status |
+|---|---|---|---|---|---|---|---|---|
+| ? | LLM-written policy code | peg-in-hole, UR5e | 30 | 90% | 600 | 16% | 13% | full |
+| ? | LLM closed-loop control | sphere-in-basket, Franka FR3 (Ditto OddGeometry) | planned | planned | planned | planned | planned | planned |
+| ? | VLA | nan | planned | planned | planned | planned | planned | planned |
+| ? | VLA | nan | planned | planned | planned | planned | planned | planned |
+| ? | VLA | nan | planned | planned | planned | planned | planned | planned |
+| ? | VLA | nan | planned | planned | planned | planned | planned | planned |
+
+The harness takes any `run_trial(params) -> TrialResult`, so every policy gets the same sampling, map and report.
+Today one row is full, none are smoke runs, and the rest are planned.
 
 ## How to reproduce
 
