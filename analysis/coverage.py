@@ -221,7 +221,7 @@ def _error_panel(ax, df, succ, cmap, col, search_mm, per_side=4) -> None:
     ok = np.isfinite(err)
     if ok.sum() < 5:
         ax.set_xticks([])
-        ax.text(0.5, 0.5, f"waiting for a `{col}` column", transform=ax.transAxes, ha="center",
+        ax.text(0.5, 0.5, f"no `{col}` data for this policy", transform=ax.transAxes, ha="center",
                 va="center", color=MUTED, fontsize=10)
         return
     err, s = np.clip(err[ok], 1e-3, None), succ[ok]
@@ -268,7 +268,9 @@ def heatmap(df, x="dx", y="dy", local_box=None, path="results/heatmap.png", depl
     local_box = local_box or lb
     deploy_box = deploy_box or db
     cmap = _cmap()
-    df = fold_yaw(_drop_infra(df))
+    df = _drop_infra(df).copy()
+    df[["dx", "dy", "yaw"]] = df[["dx", "dy", "yaw"]].astype(float)  # concat with an empty frame gives object dtype
+    df = fold_yaw(df)
     local_box, deploy_box = fold_box(local_box), fold_box(deploy_box)
     df = df.assign(r=np.hypot(df["dx"], df["dy"]))
     dxl, dxh = _range(deploy_box, "dx")
