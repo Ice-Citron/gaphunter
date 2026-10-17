@@ -30,8 +30,9 @@ CLIP_MAX_SIDE, CLIP_MAX_SECONDS = 320, 10.0
 
 
 def param_hash(params: dict) -> str:
-    keys = ("dx", "dy", "yaw", "seed")
-    return hashlib.sha1(json.dumps({k: params[k] for k in keys}, sort_keys=True).encode()).hexdigest()
+    canon = {"dx": float(params["dx"]), "dy": float(params["dy"]), "yaw": float(params["yaw"]),
+             "seed": int(params["seed"])}  # numpy scalars from pandas are not JSON-serialisable
+    return hashlib.sha1(json.dumps(canon, sort_keys=True).encode()).hexdigest()
 
 
 def framework_python() -> Path:
@@ -56,7 +57,9 @@ def _run_in_subprocess(params, render):
     from sim.trial import TrialResult
 
     t0 = time.time()
-    cmd = [str(framework_python()), "-B", "-m", "sim.ditto_trial", json.dumps(params)]
+    clean = {"dx": float(params["dx"]), "dy": float(params["dy"]), "yaw": float(params["yaw"]),
+             "seed": int(params["seed"])}
+    cmd = [str(framework_python()), "-B", "-m", "sim.ditto_trial", json.dumps(clean)]
     if render:
         cmd.append("--render")
     proc = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True)
