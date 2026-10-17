@@ -259,8 +259,11 @@ def heatmap(df, x="dx", y="dy", local_box=None, path="results/heatmap.png", depl
 
     fig.tight_layout()
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-    fig.savefig(path, dpi=150, facecolor=BG)
+    # Write then rename, so a concurrent reader (another Streamlit session) never sees a partial PNG.
+    tmp = f"{path}.{os.getpid()}.tmp.png"
+    fig.savefig(tmp, dpi=150, facecolor=BG)
     plt.close(fig)
+    os.replace(tmp, path)
     return path
 
 

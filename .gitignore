@@ -234,3 +234,4 @@ results/runs/
 results/transcripts/*.stderr.txt
 results/rerun.csv
 results/heatmap_fake.png
+results/*.tmp.png

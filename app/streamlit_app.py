@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import html
+import importlib
 import inspect
 import json
 import os
@@ -17,6 +18,10 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 RESULTS = ROOT / "results"
 
+import analysis.coverage  # noqa: E402
+
+# Streamlit reruns this script but keeps imported modules; reload so edits to the analysis show up.
+importlib.reload(analysis.coverage)
 from analysis.coverage import coverage_report, default_boxes, heatmap  # noqa: E402
 
 st.set_page_config(page_title="GapHunter", layout="wide", initial_sidebar_state="collapsed")
@@ -27,8 +32,8 @@ st.markdown(
 [data-testid="stSidebar"], [data-testid="collapsedControl"] {display: none;}
 .block-container {padding-top: 1rem; padding-bottom: 1rem; max-width: 1280px;}
 h1 {margin-bottom: 0 !important;}
-.gh-sub {color: #e6e6e6; font-size: 1.15rem; margin: 0 0 .2rem 0;}
-.gh-back {color: #8b8f98; font-size: .9rem; margin-bottom: .6rem;}
+p.gh-sub, .stMarkdown p.gh-sub {color: #e6e6e6; font-size: 1.25rem !important; margin: 0 0 .2rem 0;}
+p.gh-back, .stMarkdown p.gh-back {color: #c3c7cf; font-size: 1.1rem !important; margin-bottom: .6rem;}
 .gh-tile {background: #1a1d24; border-radius: 8px; padding: .7rem 1rem;}
 .gh-tile .lbl {color: #8b8f98; font-size: .8rem; text-transform: uppercase; letter-spacing: .04em;}
 .gh-tile .val {font-size: 2.6rem; font-weight: 700; line-height: 1.1;}
