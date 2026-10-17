@@ -420,8 +420,9 @@ with st.expander("First attempt: Astra driving the Franka live"):
             except Exception:
                 pass
             secs = sum((x.get("elapsed_s") or 0) for x in steps if isinstance(x, dict))
-            st.markdown(f'<p class="gh-cap">Ditto Bench sphere-in-basket, nominal placement (dx = dy = yaw = 0), '
-                        f'seed 1 · {len(steps)} Astra decisions · {secs:.0f} s of model time</p>',
+            st.markdown(f'<p class="gh-cap">Ditto Bench tapered-block variant (medium), run alongside the gate · '
+                        f'nominal placement (dx = dy = yaw = 0), seed 1 · {len(steps)} Astra decisions · '
+                        f'{secs:.0f} s of model time</p>',
                         unsafe_allow_html=True)
         else:
             placeholder("Ditto clip not found.")
