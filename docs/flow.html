@@ -76,10 +76,12 @@ tr.sel .box { background: var(--ink); border-color: var(--ink); }
 .bar i { display: block; height: 100%; width: 0; background: var(--ink); }
 svg.hm { width: 100%; height: auto; display: block; }
 .runlog { max-height: 340px; }
-.media { display: flex; gap: 10px; overflow-x: auto; padding: 2px 0 6px; min-height: 118px; }
+.media { display: flex; gap: 12px; overflow-x: auto; padding: 2px 0 6px; min-height: 140px; align-items: flex-start; }
 .media figure, .gallery figure { margin: 0; }
-.media figure { flex: 0 0 auto; width: 160px; }
-.media video, .gallery video { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border: 1px solid var(--line); border-radius: 6px; background: #000; display: block; }
+.media figure { flex: 0 0 auto; width: 320px; }
+.media figure.wide { width: 560px; }
+.gallery figure.wide { grid-column: 1 / -1; }
+.media video, .gallery video { width: 100%; height: auto; border: 1px solid var(--line); border-radius: 6px; background: #000; display: block; }
 .media figcaption, .gallery figcaption { font-size: 11px; color: var(--muted); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .empty { color: var(--faint); font-size: 12px; align-self: center; }
 .nums { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 10px; margin: 14px 0 6px; align-items: end; }
@@ -92,7 +94,7 @@ svg.hm { width: 100%; height: auto; display: block; }
 .mode .track { height: 6px; background: var(--soft); }
 .mode .track i { display: block; height: 100%; background: var(--ink); }
 .mode span:last-child { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
-.gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; }
+.gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; align-items: start; }
 .why { margin: 12px 0 0; padding-top: 10px; border-top: 1px solid var(--line); }
 .sub { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 16px 0 8px; }
 .hidden { display: none !important; }
@@ -330,7 +332,7 @@ function run() {
       const c = st.p.clips[r[6]], m = $("media"); m.querySelector(".empty")?.remove();
       pre(m, `<figure><video src="${esc(c.url)}#t=0.5" muted playsinline preload="metadata"></video>
         <figcaption>${esc(st.p.id)} · ${esc(c.mode)} · ${c.phase}</figcaption></figure>`);
-      const v = m.querySelector("video"); v.onmouseenter = () => v.play(); v.onmouseleave = () => v.pause();
+      const v = m.querySelector("video"); v.onmouseenter = () => v.play(); v.onmouseleave = () => v.pause(); widen(m.firstElementChild);
     }
   };
   S.play.forEach(draw);
@@ -342,6 +344,9 @@ function run() {
   }, 50);
   $("skip").onclick = () => { stop(); for (const st of S.play) { while (st.i < st.rows.length) emit(st, st.rows[st.i++]); draw(st); } done(); };
 }
+// Very wide clips (the Ditto two-camera view) get a full row, so they are not shrunk to a sliver.
+function widen(root) { root.querySelectorAll("video").forEach(v => { const f = () => v.closest("figure").classList.toggle("wide", v.videoWidth > 2 * v.videoHeight);
+  v.readyState >= 1 ? f() : v.addEventListener("loadedmetadata", f, {once: true}); }); }
 function stop() { if (S.timer) clearInterval(S.timer); S.timer = null; }
 
 function compare() {
@@ -370,6 +375,7 @@ function compare() {
       <div class="gallery">${gal || '<span class="empty">No clips recorded.</span>'}</div>
       ${p.why ? `<p class="why">${esc(p.why)}</p>` : ""}</div>`;
   }).join(""));
+  widen($("cmp"));
   const T = D.table;
   put($("all"), `<tr>${T.cols.map((c, i) => `<th class="${i >= 3 && i <= 7 ? "n" : ""}">${esc(c)}</th>`).join("")}</tr>` + T.rows.map(r =>
     `<tr class="${r[8] === "planned" ? "off" : ""}">${r.map((v, i) => `<td class="${i >= 3 && i <= 7 ? "n" : ""}">${esc(i === 2 && v.includes("sphere") ? "Sphere-in-basket, Franka" : v)}</td>`).join("")}</tr>`).join(""));
