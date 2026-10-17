@@ -16,7 +16,7 @@ The benchmark never tested where the policy fails.
 ## What GapHunter does
 
 **Sample → run → map → report.** GapHunter samples the hole offset (`dx`, `dy`, yaw) from the
-benchmark's box and a wider deployment box, runs the policy on each sample, and maps where
+benchmark's box and a wider deployment box, runs the policy, and maps where
 it fails. Task: MuJoCo UR5e peg-in-hole, 20 mm square peg, 21 mm hole. Success is depth ≥ 30 mm with lateral error < 1 mm.
 
 ## Why Astra as the policy
@@ -40,14 +40,14 @@ Yaw is folded to ±45° by the square peg's symmetry (1.0% unfolded).
 
 | policy | family | task | n local | local success | n deploy | deploy success | outside-box success | status |
 |---|---|---|---|---|---|---|---|---|
-| ? | LLM-written policy code | peg-in-hole, UR5e | 30 | 90% | 600 | 16% | 13% | full |
-| ? | LLM closed-loop control | sphere-in-basket, Franka FR3 (Ditto OddGeometry) | planned | planned | planned | planned | planned | planned |
-| ? | VLA | nan | planned | planned | planned | planned | planned | planned |
-| ? | VLA | nan | planned | planned | planned | planned | planned | planned |
-| ? | VLA | nan | planned | planned | planned | planned | planned | planned |
-| ? | VLA | nan | planned | planned | planned | planned | planned | planned |
+| astra-script | LLM-written policy code | peg-in-hole, UR5e | 30 | 90% | 600 | 16% | 13% | full |
+| astra-live | LLM closed-loop control | sphere-in-basket, Franka FR3 (Ditto OddGeometry) | planned | planned | planned | planned | planned | planned |
+| molmoact2 | VLA | not chosen yet | planned | planned | planned | planned | planned | planned |
+| pi05 | VLA | not chosen yet | planned | planned | planned | planned | planned | planned |
+| gemini-robotics | VLA | not chosen yet | planned | planned | planned | planned | planned | planned |
+| gr00t | VLA | not chosen yet | planned | planned | planned | planned | planned | planned |
 
-The harness takes any `run_trial(params) -> TrialResult`, so every policy gets the same sampling, map and report.
+The harness takes any `run_trial(params) -> TrialResult`; every policy gets the same map and report.
 Today one row is full, none are smoke runs, and the rest are planned.
 
 ## How to reproduce

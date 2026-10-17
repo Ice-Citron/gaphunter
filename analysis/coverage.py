@@ -404,12 +404,14 @@ def _cell(k: int, n: int, smoke: bool) -> str:
     return f"{k}/{n} ({k / n:.0%})" if smoke else f"{k / n:.0%}"
 
 
-def policy_row(pol: dict, root=".", local_box=None, deploy_box=None) -> dict:
+def policy_row(pol: dict, root=".", local_box=None, deploy_box=None, warns: list | None = None) -> dict:
     """One table row. Planned rows say "planned" in every numeric cell, never a dash that could read as zero.
-    Smoke rows carry their n inside each success cell."""
-    status = str(pol.get("status", "planned")).lower()
-    row = {"policy": pol.get("name", pol.get("id", "?")), "family": pol.get("family", ""),
-           "task": pol.get("task", ""), "status": status, "id": pol.get("id", pol.get("name", "?"))}
+    Smoke rows carry their n inside each success cell. Numbers come from the row's CSVs; numbers stored in
+    policies.json are used only when a CSV is missing, and are cross-checked otherwise."""
+    status = str(pol.get("status") or "planned").lower()
+    name = pol.get("policy") or pol.get("name") or pol.get("id") or "?"
+    row = {"policy": name, "family": pol.get("family") or "", "task": pol.get("task") or "not chosen yet",
+           "status": status, "id": name}
     if status == "planned":
         return {**row, **{c: "planned" for c in _NUMERIC}}
 
@@ -420,22 +422,44 @@ def policy_row(pol: dict, root=".", local_box=None, deploy_box=None) -> dict:
         return pd.read_csv(os.path.join(root, f))
 
     ldf, ddf = read("local_csv"), read("deploy_csv")
-    smoke = status == "smoke"
     empty = pd.DataFrame(columns=["dx", "dy", "yaw", "success"])
     r = coverage_report(ldf if ldf is not None else empty, ddf if ddf is not None else empty,
                         local_box, deploy_box)
-    k = lambda rate, n: int(round(rate * n)) if n else 0  # noqa: E731
-    row["n local"] = str(r["n_local"]) if ldf is not None else "not run"
-    row["local success"] = _cell(k(r["local_success"], r["n_local"]), r["n_local"], smoke) if ldf is not None else "not run"
-    row["n deploy"] = str(r["n_deploy"]) if ddf is not None else "not run"
-    row["deploy success"] = _cell(k(r["deploy_success"], r["n_deploy"]), r["n_deploy"], smoke) if ddf is not None else "not run"
-    row["outside-box success"] = (_cell(k(r["outside_local_success"], r["n_outside"]), r["n_outside"], smoke)
-                                  if ddf is not None else "not run")
+    stored = {"n_local": pol.get("n_local"), "local_success": pol.get("local_success"),
+              "n_deploy": pol.get("n_deploy"), "deploy_success": pol.get("deploy_success"),
+              "outside_local_success": pol.get("outside_success")}
+    if warns is not None:
+        for k, v in stored.items():
+            have = ldf is not None if k in ("n_local", "local_success") else ddf is not None
+            if have and v is not None and abs(float(v) - float(r[k])) > 0.0005:
+                warns.append(f"policies.json {name}: {k} = {v} but the CSV gives {r[k]:.4f}")
+    smoke = status == "smoke"
+    k_of = lambda rate, n: int(round(rate * n)) if n else 0  # noqa: E731
+
+    def cells(have, n, rate, n_stored, rate_stored):
+        if not have:
+            if n_stored and rate_stored is not None:  # no CSV, but the JSON carries the numbers
+                n, rate = int(n_stored), float(rate_stored)
+            else:
+                return "not run", "not run"
+        return str(n), _cell(k_of(rate, n), n, smoke)
+
+    row["n local"], row["local success"] = cells(ldf is not None, r["n_local"], r["local_success"],
+                                                 stored["n_local"], stored["local_success"])
+    row["n deploy"], row["deploy success"] = cells(ddf is not None, r["n_deploy"], r["deploy_success"],
+                                                   stored["n_deploy"], stored["deploy_success"])
+    if ddf is not None:
+        row["outside-box success"] = _cell(k_of(r["outside_local_success"], r["n_outside"]), r["n_outside"], smoke)
+    elif stored["outside_local_success"] is not None:
+        row["outside-box success"] = f"{float(stored['outside_local_success']):.0%}"
+    else:
+        row["outside-box success"] = "not run"
     return row
 
 
-def policy_table(path="results/policies.json", root=".", local_box=None, deploy_box=None) -> pd.DataFrame:
-    rows = [policy_row(p, root, local_box, deploy_box) for p in load_policies(path, root)]
+def policy_table(path="results/policies.json", root=".", local_box=None, deploy_box=None,
+                 warns: list | None = None) -> pd.DataFrame:
+    rows = [policy_row(p, root, local_box, deploy_box, warns) for p in load_policies(path, root)]
     return pd.DataFrame(rows, columns=POLICY_COLUMNS + ["id"])
 
 

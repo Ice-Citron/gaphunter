@@ -16,7 +16,7 @@ The benchmark never tested where the policy fails.
 ## What GapHunter does
 
 **Sample → run → map → report.** GapHunter samples the hole offset (`dx`, `dy`, yaw) from the
-benchmark's box and a wider deployment box, runs the policy on each sample, and maps where
+benchmark's box and a wider deployment box, runs the policy, and maps where
 it fails. Task: MuJoCo UR5e peg-in-hole, 20 mm square peg, 21 mm hole. Success is depth ≥ 30 mm with lateral error < 1 mm.
 
 ## Why Astra as the policy
@@ -40,7 +40,7 @@ Yaw is folded to ±45° by the square peg's symmetry ({coverage_all} unfolded).
 
 {policy_table}
 
-The harness takes any `run_trial(params) -> TrialResult`, so every policy gets the same sampling, map and report.
+The harness takes any `run_trial(params) -> TrialResult`; every policy gets the same map and report.
 {policy_status}
 
 ## How to reproduce

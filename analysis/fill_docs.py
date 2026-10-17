@@ -86,7 +86,7 @@ def values(local_csv: Path, deploy_csv: Path) -> tuple[dict, list[str]]:
         "{deploy_box}": box_text(db),
         "{gap_paragraph}": r["text"],
     }
-    table = policy_table("results/policies.json", root=str(ROOT), local_box=lb, deploy_box=db)
+    table = policy_table("results/policies.json", root=str(ROOT), local_box=lb, deploy_box=db, warns=warns)
     if table.empty:
         warns.append("results/policies.json missing or empty; policy table falls back to the Astra v1 row from the CSVs")
         fallback = {"id": "astra-v1", "name": "Astra v1", "family": "LLM-written code",
