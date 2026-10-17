@@ -1,0 +1,3 @@
+dx,dy,yaw,seed,success,failure_mode,n_decisions,t_wall,clip,transcript,pose_error_mm,pass
+0.094763,0.08269,-50.162255,200,False,miss,51,144.8294746875763,results/clips/ditto-opus-script-462f630d1c36dab92dd4fef8fd0662aa3bbf5462.mp4,,,1
+-0.025732,0.131883,7.919156,201,False,miss,51,144.0260090827942,results/clips/ditto-opus-script-96f734505153bbf6e3dd70ea092d6f09297fa721.mp4,,,1

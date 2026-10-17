@@ -1,0 +1,4 @@
+dx,dy,yaw,seed,success,failure_mode,n_decisions,t_wall,clip,transcript,pose_error_mm,pass
+0.094763,0.08269,-50.162255,200,False,miss,22,289.5437242984772,results/clips/ditto-agent-462f630d1c36dab92dd4fef8fd0662aa3bbf5462.mp4,results/transcripts/ditto-agent-462f630d1c36dab92dd4fef8fd0662aa3bbf5462.json,,1
+-0.025732,0.131883,7.919156,201,False,miss,20,246.73215579986572,results/clips/ditto-agent-96f734505153bbf6e3dd70ea092d6f09297fa721.mp4,results/transcripts/ditto-agent-96f734505153bbf6e3dd70ea092d6f09297fa721.json,,1
+-0.07076,-0.017033,-4.789763,202,False,miss,20,238.3968768119812,results/clips/ditto-agent-bde5a4584aae75b19074995d3b884c6b1cf989aa.mp4,results/transcripts/ditto-agent-bde5a4584aae75b19074995d3b884c6b1cf989aa.json,,1

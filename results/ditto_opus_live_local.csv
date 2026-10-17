@@ -1,2 +1,6 @@
 dx,dy,yaw,seed,success,failure_mode,n_decisions,t_wall,clip,transcript,pose_error_mm,pass
 0.041351,0.003979,7.132937,100,False,miss,23,382.74038434028625,results/clips/ditto-opus_live-2e9a6a363297154e5565684ce7a4e0ddd703ea0b.mp4,results/transcripts/ditto-opus_live-2e9a6a363297154e5565684ce7a4e0ddd703ea0b.json,,1
+-0.000185,0.045999,-8.290674,101,False,drop,24,476.64709639549255,results/clips/ditto-opus_live-0b49fa4fb5d928eb9e57c788ee9d9987405f25a5.mp4,results/transcripts/ditto-opus_live-0b49fa4fb5d928eb9e57c788ee9d9987405f25a5.json,,1
+-0.045921,-0.01258,7.757046,102,False,timeout,25,432.44530510902405,results/clips/ditto-opus_live-97aedd630c14df4249d4e66bf06c84842992218f.mp4,results/transcripts/ditto-opus_live-97aedd630c14df4249d4e66bf06c84842992218f.json,,1
+0.011005,0.031899,-6.599531,103,False,miss,17,253.62706995010376,results/clips/ditto-opus_live-98c8f3b8ba23a62b27a76275257a1c01dc0505f8.mp4,results/transcripts/ditto-opus_live-98c8f3b8ba23a62b27a76275257a1c01dc0505f8.json,,1
+0.014021,-0.007748,-14.526541,104,False,timeout,25,367.5628135204315,results/clips/ditto-opus_live-d1d99ee40e398e17a430150c2f2903046450930d.mp4,results/transcripts/ditto-opus_live-d1d99ee40e398e17a430150c2f2903046450930d.json,,1

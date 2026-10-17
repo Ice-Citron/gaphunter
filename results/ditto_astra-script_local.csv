@@ -1,0 +1,5 @@
+dx,dy,yaw,seed,success,failure_mode,n_decisions,t_wall,clip,transcript,pose_error_mm,pass
+0.041351,0.003979,7.132937,100,False,miss,29,71.11738514900208,results/clips/ditto-astra-script-2e9a6a363297154e5565684ce7a4e0ddd703ea0b.mp4,,,1
+-0.000185,0.045999,-8.290674,101,False,miss,29,71.42559289932251,results/clips/ditto-astra-script-0b49fa4fb5d928eb9e57c788ee9d9987405f25a5.mp4,,,1
+-0.045921,-0.01258,7.757046,102,False,miss,29,69.28094148635864,results/clips/ditto-astra-script-97aedd630c14df4249d4e66bf06c84842992218f.mp4,,,1
+0.011005,0.031899,-6.599531,103,False,miss,29,73.30581736564636,results/clips/ditto-astra-script-98c8f3b8ba23a62b27a76275257a1c01dc0505f8.mp4,,,1

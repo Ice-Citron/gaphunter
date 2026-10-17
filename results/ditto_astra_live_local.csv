@@ -7,3 +7,8 @@ dx,dy,yaw,seed,success,failure_mode,n_decisions,t_wall,clip,transcript,pose_erro
 0.0,0.0,0.0,22,False,drop,17,198.9694077968597,,results/ditto_gate/transcripts/5eaabb73030c13601f8ced63196270157a393050.json,,1
 0.0,0.0,0.0,13,False,miss,25,337.1222288608551,results/clips/ditto-agent-30965a808c9d29a7ab38a258be60621b929abc05.mp4,results/transcripts/ditto-agent-30965a808c9d29a7ab38a258be60621b929abc05.json,,1
 0.0,0.0,0.0,14,False,timeout,24,320.87913727760315,results/clips/ditto-agent-e88c1b51ca40694fd9504eb40560194ccdf020ab.mp4,results/transcripts/ditto-agent-e88c1b51ca40694fd9504eb40560194ccdf020ab.json,,1
+0.041351,0.003979,7.132937,100,False,api_error,25,466.62493085861206,results/clips/ditto-agent-2e9a6a363297154e5565684ce7a4e0ddd703ea0b.mp4,results/transcripts/ditto-agent-2e9a6a363297154e5565684ce7a4e0ddd703ea0b.json,,1
+-0.000185,0.045999,-8.290674,101,False,api_error,25,484.9386577606201,results/clips/ditto-agent-0b49fa4fb5d928eb9e57c788ee9d9987405f25a5.mp4,results/transcripts/ditto-agent-0b49fa4fb5d928eb9e57c788ee9d9987405f25a5.json,,1
+-0.045921,-0.01258,7.757046,102,False,drop,25,336.306734085083,results/clips/ditto-agent-97aedd630c14df4249d4e66bf06c84842992218f.mp4,results/transcripts/ditto-agent-97aedd630c14df4249d4e66bf06c84842992218f.json,,1
+0.011005,0.031899,-6.599531,103,False,timeout,25,332.0904235839844,results/clips/ditto-agent-98c8f3b8ba23a62b27a76275257a1c01dc0505f8.mp4,results/transcripts/ditto-agent-98c8f3b8ba23a62b27a76275257a1c01dc0505f8.json,,1
+0.014021,-0.007748,-14.526541,104,False,timeout,25,296.05961990356445,results/clips/ditto-agent-d1d99ee40e398e17a430150c2f2903046450930d.mp4,results/transcripts/ditto-agent-d1d99ee40e398e17a430150c2f2903046450930d.json,,1
