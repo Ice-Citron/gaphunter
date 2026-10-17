@@ -100,6 +100,7 @@ svg.hm { width: 100%; height: auto; display: block; }
 .addform { margin-bottom: 16px; }
 .addform input[type=file] { width: 320px; border: 0; padding: 0; }
 .addform input[type=text], .addform select { border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; background: var(--bg); }
+.borrow { font-size: 12px; border: 1px solid var(--ink); border-radius: 4px; padding: 2px 8px; margin: 6px 0; display: inline-block; }
 .hidden { display: none !important; }
 @media (max-width: 860px) {
   .app { grid-template-columns: minmax(0, 1fr); }
@@ -269,7 +270,8 @@ function policies() {
   put($("pols"), `<tr><th></th><th>Policy</th><th>Family</th><th>Author</th><th>Task</th><th>Last result</th><th class="n">Trials</th></tr>` +
     D.policies.map(p => {
       const off = !has(p) || p.task !== S.task;
-      const last = !has(p) ? (p.placeholder ? "placeholder · " : "") + "no checkpoint in this build" : p.task !== S.task ? "other task" : p.last;
+      const last = !has(p) ? (p.placeholder ? "placeholder · " : "") + "no checkpoint in this build" : p.task !== S.task ? "other task"
+        : p.borrowed ? "peg-in-hole data: " + p.last : p.last;
       return `<tr class="${off ? "off" : "click"} ${S.sel.has(p.id) && !off ? "sel" : ""}" data-id="${esc(p.id)}" title="${esc(p.note)}">
         <td><span class="box"></span></td><td><b>${esc(p.id)}</b></td><td>${esc(p.family)}</td><td>${esc(p.author)}</td>
         <td>${esc(p.task ? taskOf(p.task).t : "any task")}</td><td>${esc(last)}</td><td class="n">${has(p) ? p.rows.length : ""}</td></tr>`;
@@ -351,6 +353,7 @@ function run() {
   const ps = chosen(), total = ps.reduce((a, p) => a + played(p).length, 0);
   $("run-sub").textContent = `Replaying ${total} committed trials, 20 per second per policy, in the order they ran.`;
   put($("charts"), ps.map(p => `<div><div class="pt"><b>${esc(p.id)}</b><span>${esc(p.family)}</span></div>
+    ${p.borrowed ? `<p class="borrow">Peg-in-hole (MuJoCo) data, shown for comparison.</p>` : ""}
     <div class="counter" id="c-${esc(p.id)}"></div><div class="bar"><i id="b-${esc(p.id)}"></i></div><div id="h-${esc(p.id)}"></div></div>`).join(""));
   $("logb").replaceChildren();
   put($("media"), `<span class="empty">Clips appear here as trials with video finish.</span>`);
@@ -402,6 +405,7 @@ function compare() {
     const gal = [...shown].map(i => p.clips[i]).sort((a, b) => (b.mode === "success") - (a.mode === "success")).map(c =>
       `<figure><video src="${esc(c.url)}#t=0.5" controls muted playsinline preload="metadata"></video><figcaption>${esc(c.mode)} · ${c.phase} · dx ${c.dx} dy ${c.dy}</figcaption></figure>`).join("");
     return `<div><div class="pt"><b>${esc(p.id)}</b><span>${esc(p.family)} · ${s.nl} local · ${s.nd} deploy</span></div>
+      ${p.borrowed ? `<p class="borrow">Peg-in-hole (MuJoCo) data, shown for comparison. Not sphere-task results.</p>` : ""}
       ${heat(p, s)}
       <div class="nums">
         <div class="hero"><div class="v ${o == null ? "none" : ""}">${pct(s.ko, s.no)}</div><div class="l">outside local box · n=${s.no}</div><div class="d">${esc(delta(o, rate(bs.ko, bs.no), isB))}</div></div>

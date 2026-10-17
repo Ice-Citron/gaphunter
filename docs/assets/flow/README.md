@@ -42,9 +42,9 @@ Yaw is folded to ±45° (square-peg symmetry; 1.0% unfolded).
 | policy | family | task | n local | local success | n deploy | deploy success | outside-box success | status |
 |---|---|---|---|---|---|---|---|---|
 | astra-script | LLM-written policy code | peg-in-hole, UR5e | 30 | 90% | 600 | 16% | 13% | full |
-| astra-live | LLM closed-loop control | Ditto Bench task 1 (DittoOddGeometry-v1) easy: pick up the 48 mm sphere and put it in the basket, Franka FR3 + Robotiq 2F-85 | 8 | 0/8 (0%) | not run | not run | not run | smoke |
+| astra-live | LLM closed-loop control | Ditto Bench task 1 (DittoOddGeometry-v1) easy: pick up the 48 mm sphere and put it in the basket, Franka FR3 + Robotiq 2F-85 | 11 | 0/11 (0%) | 3 | 0/3 (0%) | 0/3 (0%) | smoke |
 | opus-script | LLM-written policy code | peg-in-hole, UR5e | 30 | 100% | 600 | 22% | 21% | full |
-| opus-live | LLM closed-loop control | Ditto Bench task 1 (DittoOddGeometry-v1) easy: pick up the 48 mm sphere and put it in the basket, Franka FR3 + Robotiq 2F-85 | 1 | 0/1 (0%) | not run | not run | not run | smoke |
+| opus-live | LLM closed-loop control | Ditto Bench task 1 (DittoOddGeometry-v1) easy: pick up the 48 mm sphere and put it in the basket, Franka FR3 + Robotiq 2F-85 | 5 | 0/5 (0%) | 3 | 0/3 (0%) | 0/3 (0%) | smoke |
 | molmoact2 | VLA | Ditto Bench task 1 (DittoOddGeometry-v1) easy: pick up the 48 mm sphere and put it in the basket, Franka FR3 + Robotiq 2F-85 | 5 | 1/5 (20%) | 5 | 1/5 (20%) | 1/5 (20%) | smoke |
 
 Any `run_trial(params) -> TrialResult` plugs in; every policy gets the same map and report.

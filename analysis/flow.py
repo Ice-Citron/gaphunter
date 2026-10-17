@@ -147,6 +147,33 @@ def build(readme: Path | None = None) -> Path:
         sim = pol.get("sim") or "mujoco"
         pols.append(_policy(pol, boxes.get(pol["policy"], dl if sim == "ditto" else lb0),
                             dd if sim == "ditto" else db0, feat))
+    # Same policy run on another task: committed results/<sim>_<policy>_{local,deploy}.csv that policies.json
+    # does not reference (it holds one row per policy name). Shown as "<policy> (<task>)".
+    listed = {pol.get(k) for pol in load_policies("results/policies.json", root=str(ROOT))
+              for k in ("local_csv", "deploy_csv")}
+    tracked = set(subprocess.run(["git", "ls-files", "results/*.csv"], cwd=ROOT, capture_output=True,
+                                 text=True).stdout.split())
+    for base in list(load_policies("results/policies.json", root=str(ROOT))):
+        for sim, label in (("ditto", "sphere"), ("mujoco", "peg")):
+            if sim == (base.get("sim") or "mujoco"):
+                continue
+            csvs = {k: f"results/{sim}_{base['policy']}_{k.split('_')[0]}.csv" for k in ("local_csv", "deploy_csv")}
+            csvs = {k: v for k, v in csvs.items() if v in tracked and v not in listed}
+            if not csvs:
+                continue
+            short = base["policy"].split("-")[0]
+            src = next((f for f in (f"results/policies/{sim}_{short}_v1.py",) if f in subprocess.run(
+                ["git", "ls-files", "results/policies"], cwd=ROOT, capture_output=True, text=True).stdout.split()), "")
+            alt = {**base, **csvs, "policy": f"{base['policy']} ({label})", "sim": sim, "status": "smoke",
+                   "notes": f"{base.get('model')} wrote this policy once for the {label} task"
+                            + (f" ({src})" if src else "") + "; it runs unchanged on every trial."}
+            pols.append(_policy(alt, dl if sim == "ditto" else lb0, dd if sim == "ditto" else db0, feat))
+    # Requested for filming: full peg-in-hole runs also listed on the sphere task, clearly labelled as
+    # peg-in-hole data (their own boxes, rows and clips). They are never presented as sphere-task results.
+    for p in [p for p in pols if p["task"] == "peg" and p["status"] == "full"]:
+        pols.append({**p, "id": f"{p['id']} · peg-in-hole data", "task": "sphere", "borrowed": True,
+                     "note": "Peg-in-hole (MuJoCo) results shown on this task for comparison only. "
+                             "Not sphere-task results.", "why": ""})
     for old in _history_rows() + PLACEHOLDERS:
         if any(p["id"] == old["policy"] for p in pols):
             continue
