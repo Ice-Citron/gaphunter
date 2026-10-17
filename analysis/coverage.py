@@ -169,11 +169,11 @@ def heatmap(df, x="dx", y="dy", local_box=None, path="results/heatmap.png", depl
     succ = _success(df).to_numpy()
 
     fig, (ax, ax2) = plt.subplots(1, 2, figsize=(1600 / 150, 800 / 150), dpi=150,
-                                  gridspec_kw={"width_ratios": [1.15, 1]})
+                                  gridspec_kw={"width_ratios": [1.6, 1]})
     fig.patch.set_facecolor(BG)
     for a in (ax, ax2):
         a.set_facecolor(BG)
-        a.tick_params(colors=MUTED, labelsize=7)
+        a.tick_params(colors=MUTED, labelsize=9)
         for s in a.spines.values():
             s.set_color("#30343c")
 
@@ -199,20 +199,19 @@ def heatmap(df, x="dx", y="dy", local_box=None, path="results/heatmap.png", depl
         for c in range(bins):
             if n[r, c] >= 2:
                 ax.text((xe[c] + xe[c + 1]) / 2, (ye[r] + ye[r + 1]) / 2, f"{rate[r, c]:.0%}",
-                        ha="center", va="center", fontsize=6.5, color="white")
+                        ha="center", va="center", fontsize=9, color="white")
     llx, lhx = _range(local_box, x)
     lly, lhy = _range(local_box, y)
     ax.add_patch(Rectangle((llx, lly), lhx - llx, lhy - lly, fill=False, edgecolor="white",
                            linestyle=(0, (4, 3)), linewidth=1.8))
-    ax.text(llx, lhy, " local benchmark", color="white", fontsize=7, va="bottom", ha="left")
+    ax.text(llx, lhy, " local benchmark", color="white", fontsize=9, va="bottom", ha="left")
     ax.set_xlim(xlo, xhi)
     ax.set_ylim(ylo, yhi)
-    ax.set_aspect("equal")
-    ax.set_xlabel(f"{x} offset (m)", color=INK, fontsize=8)
-    ax.set_ylabel(f"{y} offset (m)", color=INK, fontsize=8)
-    ax.set_title("Success rate, Astra policy — deployment domain", color=INK, fontsize=10, loc="left")
+    ax.set_xlabel(f"{x} offset (m)", color=INK, fontsize=10)
+    ax.set_ylabel(f"{y} offset (m)", color=INK, fontsize=10)
+    ax.set_title("Success rate, Astra policy — deployment domain", color=INK, fontsize=12, loc="left")
     cb = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.03)
-    cb.ax.tick_params(colors=MUTED, labelsize=7)
+    cb.ax.tick_params(colors=MUTED, labelsize=9)
     cb.outline.set_edgecolor("#30343c")
     cb.set_ticks([0, 0.5, 1])
     cb.set_ticklabels(["0%", "50%", "100%"])
@@ -230,17 +229,17 @@ def heatmap(df, x="dx", y="dy", local_box=None, path="results/heatmap.png", depl
     ax2.bar(centers, wr, width=width, color=[cmap(v) for v in wr], edgecolor=BG, linewidth=1.5)
     for cx, v, cnt in zip(centers, wr, wn):
         if cnt:
-            ax2.text(cx, v + 0.02, f"{v:.0%}\nn={cnt}", ha="center", va="bottom", fontsize=6.5, color=INK)
+            ax2.text(cx, v + 0.02, f"{v:.0%}\nn={cnt}", ha="center", va="bottom", fontsize=9, color=INK)
     llw, lhw = _range(local_box, "yaw")
     ax2.axvspan(llw, lhw, facecolor="white", alpha=0.06, edgecolor="white", linestyle=(0, (4, 3)),
                 linewidth=1.2)
-    ax2.text((llw + lhw) / 2, 1.13, "local", color="white", fontsize=7, ha="center")
+    ax2.text((llw + lhw) / 2, 1.13, "local", color="white", fontsize=9, ha="center")
     ax2.set_xlim(wlo, whi)
     ax2.set_ylim(0, 1.2)
     ax2.set_yticks([0, 0.5, 1])
     ax2.set_yticklabels(["0%", "50%", "100%"])
-    ax2.set_xlabel("yaw offset (deg)", color=INK, fontsize=8)
-    ax2.set_title("Success rate by yaw", color=INK, fontsize=10, loc="left")
+    ax2.set_xlabel("yaw offset (deg)", color=INK, fontsize=10)
+    ax2.set_title("Success rate by yaw", color=INK, fontsize=12, loc="left")
     ax2.grid(axis="y", color="#30343c", linewidth=0.6)
     ax2.set_axisbelow(True)
 

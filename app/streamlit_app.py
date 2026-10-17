@@ -25,7 +25,7 @@ st.markdown(
     """
 <style>
 [data-testid="stSidebar"], [data-testid="collapsedControl"] {display: none;}
-.block-container {padding-top: 1.6rem; padding-bottom: 1rem; max-width: 1280px;}
+.block-container {padding-top: 1rem; padding-bottom: 1rem; max-width: 1280px;}
 h1 {margin-bottom: 0 !important;}
 .gh-sub {color: #e6e6e6; font-size: 1.15rem; margin: 0 0 .2rem 0;}
 .gh-back {color: #8b8f98; font-size: .9rem; margin-bottom: .6rem;}
@@ -33,12 +33,13 @@ h1 {margin-bottom: 0 !important;}
 .gh-tile .lbl {color: #8b8f98; font-size: .8rem; text-transform: uppercase; letter-spacing: .04em;}
 .gh-tile .val {font-size: 2.6rem; font-weight: 700; line-height: 1.1;}
 .gh-tile .n {color: #8b8f98; font-size: .8rem;}
-.gh-ph {background: #2a2d34; color: #8b8f98; border-radius: 8px; height: 220px;
+.gh-ph {background: #2a2d34; color: #8b8f98; border-radius: 8px; height: 170px;
         display: flex; align-items: center; justify-content: center; text-align: center; padding: 1rem;}
 .gh-report {font-size: 1rem; line-height: 1.55;}
 .gh-src {color: #8b8f98; font-size: .75rem;}
 .gh-foot {color: #8b8f98; font-size: .85rem; border-top: 1px solid #30343c; padding-top: .6rem; margin-top: .8rem;}
-video {max-height: 300px;}
+video {max-height: 240px;}
+h3 {padding: .4rem 0 .3rem 0 !important;}
 </style>
 """,
     unsafe_allow_html=True,
@@ -107,7 +108,7 @@ def load_data() -> tuple[pd.DataFrame, pd.DataFrame, str]:
 
 
 @st.cache_data
-def _heatmap_png(df: pd.DataFrame, path: str) -> bytes | None:
+def _heatmap_png(df: pd.DataFrame, path: str, code_mtime: float) -> bytes | None:
     lb, db = default_boxes()
     heatmap(df, local_box=lb, deploy_box=db, path=path)
     return Path(path).read_bytes()
@@ -248,12 +249,12 @@ tile(t1, "local success (in the benchmark)", rep["local_success"], rep["n_local"
 tile(t2, "deployment success", rep["deploy_success"], rep["n_deploy"], RED)
 tile(t3, "outside the local box", rep["outside_local_success"], rep["n_outside"], RED)
 
-left, right = st.columns([3, 2], gap="medium")
+left, right = st.columns([2, 1], gap="medium")
 with left:
     hm_path = RESULTS / ("heatmap.png" if source == "real" else "heatmap_fake.png")
     all_df = pd.concat([local_df, deploy_df], ignore_index=True)
     try:
-        png = _heatmap_png(all_df, str(hm_path)) if len(all_df) else None
+        png = _heatmap_png(all_df, str(hm_path), _mtime(ROOT / "analysis" / "coverage.py")) if len(all_df) else None
     except Exception as e:
         png = None
         st.caption(f"Heatmap failed: {e}")
