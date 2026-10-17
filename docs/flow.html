@@ -56,7 +56,7 @@ tr.off td { color: var(--faint); cursor: not-allowed; }
 .box { border-radius: 3px; }
 tr.sel .radio { border: 4px solid var(--ink); }
 tr.sel .box { background: var(--ink); border-color: var(--ink); }
-.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 7px; padding: 2px; gap: 2px; }
+.seg { display: inline-flex; flex-wrap: wrap; max-width: 100%; border: 1px solid var(--line); border-radius: 7px; padding: 2px; gap: 2px; }
 .seg button { border: 0; background: none; padding: 5px 12px; border-radius: 5px; cursor: pointer; color: var(--muted); }
 .seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
 .seg button:disabled { color: var(--faint); cursor: not-allowed; }
@@ -123,11 +123,26 @@ svg.hm { width: 100%; height: auto; display: block; }
   <nav class="rail" aria-label="Steps"><h4>Workflow</h4><ol class="steps" id="steps"></ol></nav>
   <main>
     <section data-step="0">
-      <div class="head"><div><h1>Tasks</h1><p class="lede">A task fixes the scene, the robot and the simulator. Pick one to evaluate.</p></div></div>
+      <div class="head"><div><h1>Tasks</h1><p class="lede">A task fixes the scene, the robot and the simulator. Pick one to evaluate.</p></div>
+        <button class="btn ghost" id="addtask">+ New task</button></div>
+      <div class="tbl addform hidden" id="taskform">
+        <table class="kv">
+          <tr><th colspan="2">New evaluation task</th></tr>
+          <tr><td>Name</td><td><input type="text" placeholder="e.g. Cable routing" style="width:240px"></td></tr>
+          <tr><td>Robot</td><td><select style="width:240px"><option>UR5e</option><option>Franka FR3</option><option>Mobile manipulator</option><option>Custom (upload URDF)</option></select></td></tr>
+          <tr><td>Simulator</td><td><select style="width:240px" id="task-sim"></select></td></tr>
+          <tr><td>Scene file</td><td><input type="file"> <span class="note">MJCF, URDF or USD</span></td></tr>
+          <tr><td>Success criterion</td><td><input type="text" placeholder="e.g. depth ≥ 30 mm and lateral error &lt; 1 mm" style="width:360px"></td></tr>
+          <tr><td>Local box</td><td><input type="text" placeholder="dx ±0.05 m, dy ±0.05 m, yaw ±15°" style="width:360px"></td></tr>
+          <tr><td>Deployment box</td><td><input type="text" placeholder="dx ±0.20 m, dy ±0.20 m, yaw ±90°" style="width:360px"></td></tr>
+          <tr><td></td><td><button class="btn" disabled>Create task</button>
+            <span class="note">Creating tasks is not available in this build. Today a task is a simulator backend behind <code>run_trial</code> (see <code>sim/trial.py</code>).</span></td></tr>
+        </table>
+      </div>
       <div class="tbl"><table id="tasks"></table></div>
       <h2>Simulator</h2>
       <div class="seg" id="sims"></div>
-      <p class="note">The simulator follows the task. Isaac Sim: coming, not available in this build.</p>
+      <p class="note">The simulator follows the task. Greyed simulators are not available in this build.</p>
     </section>
 
     <section data-step="1" class="hidden">
@@ -189,8 +204,14 @@ const STEPS = ["Task", "Policies", "Sweep", "Run", "Results"];
 const TASKS = [
   {id: "peg", t: "Peg-in-hole, UR5e", robot: "UR5e, 20 mm square peg", sim: "mujoco", simName: "MuJoCo"},
   {id: "sphere", t: "Sphere-in-basket, Franka", robot: "Franka FR3 + Robotiq 2F-85", sim: "ditto", simName: "ManiSkill / Ditto"},
-  {id: "custom", t: "Custom scene", robot: "upload coming", off: true},
+  {id: "grasp", t: "Grasping, mixed objects", robot: "Franka FR3 + Robotiq 2F-85", simName: "Isaac Sim", off: true},
+  {id: "sort", t: "Sorting into bins", robot: "UR5e + suction", simName: "MuJoCo", off: true},
+  {id: "drawer", t: "Drawer opening", robot: "Franka FR3", simName: "ManiSkill", off: true},
+  {id: "shelf", t: "Shelf restocking", robot: "Mobile manipulator", simName: "Isaac Sim", off: true},
+  {id: "custom", t: "Custom scene", robot: "your URDF + scene", simName: "any", off: true},
 ];
+const SIMS = [["mujoco", "MuJoCo"], ["ditto", "ManiSkill"], ["isaac", "Isaac Sim"], ["genesis", "Genesis"],
+              ["pybullet", "PyBullet"], ["gazebo", "Gazebo"], ["custom", "Custom simulator"]];
 const S = {step: 0, reached: 0, task: "peg", sel: new Set(), nl: 30, nd: 600, timer: null, play: null};
 const $ = id => document.getElementById(id);
 // All text from the data passes through esc(); markup is then parsed in the target element's context.
@@ -228,13 +249,15 @@ function tasks() {
     TASKS.map(t => {
       const ps = D.policies.filter(p => p.task === t.id && has(p));
       return `<tr class="${t.off ? "off" : "click"} ${t.id === S.task ? "sel" : ""}" data-id="${t.id}"><td><span class="radio"></span></td>
-        <td><b>${esc(t.t)}</b></td><td>${esc(t.robot)}</td><td>${t.off ? "upload coming · " + NA : esc(t.simName)}</td>
+        <td><b>${esc(t.t)}</b>${t.off ? ' <span class="note">placeholder</span>' : ""}</td><td>${esc(t.robot)}</td>
+        <td>${esc(t.simName)}${t.off ? " · " + NA : ""}</td>
         <td class="n">${t.off ? "" : ps.length}</td><td class="n">${t.off ? "" : ps.reduce((a, p) => a + p.rows.length, 0)}</td></tr>`;
     }).join(""));
   $("tasks").querySelectorAll("tr.click").forEach(r => r.onclick = () => setTask(r.dataset.id));
   const cur = taskOf(S.task).sim;
-  put($("sims"), [["mujoco", "MuJoCo"], ["ditto", "ManiSkill"], ["isaac", "Isaac Sim"]].map(([id, n]) =>
-    `<button data-id="${id}" aria-pressed="${id === cur}" ${id === "isaac" ? `disabled title="${NA}"` : ""}>${n}${id === "isaac" ? " · coming" : ""}</button>`).join(""));
+  const live = new Set(TASKS.filter(t => !t.off).map(t => t.sim));
+  put($("sims"), SIMS.map(([id, n]) =>
+    `<button data-id="${id}" aria-pressed="${id === cur}" ${live.has(id) ? "" : `disabled title="${NA}"`}>${n}</button>`).join(""));
   $("sims").querySelectorAll("button:not(:disabled)").forEach(b => b.onclick = () => setTask(TASKS.find(t => t.sim === b.dataset.id).id));
 }
 function setTask(id) {
@@ -397,6 +420,8 @@ function compare() {
 }
 
 $("add").onclick = () => $("addform").classList.toggle("hidden");
+$("addtask").onclick = () => $("taskform").classList.toggle("hidden");
+put($("task-sim"), SIMS.map(([id, n]) => `<option>${esc(n)}</option>`).join(""));
 put($("add-task"), TASKS.map(t => `<option ${t.off ? "disabled" : ""}>${esc(t.t)}${t.off ? " — " + NA : ""}</option>`).join(""));
 $("back").onclick = () => go(Math.max(0, S.step - 1));
 $("next").onclick = () => go(Math.min(4, S.step + 1));
