@@ -40,3 +40,16 @@ Failure clips (rows 0, 1, 3, 4; all `miss`): see the `clip` column of deploy.csv
 Run from the project `.venv/bin/python`, NOT the framework venv: only the re-exec path has the
 240 s per-trial timeout (`GAPHUNTER_TRIAL_TIMEOUT_S`). Enable the real backend with `GAPHUNTER_SIM=ditto`.
 `GAPHUNTER_SIM=ditto .venv/bin/python -m runner.batch --box local --n 5 --tag probe --workers 1`
+
+## Planned rerun (after Agent A pushes the perception-noise change)
+`runner/refine.py` adds 10 Sobol points to every 8x8 dx×dy cell (same bin edges as the heatmap) with
+success in [10%, 90%] or n < 5, and appends them to deploy.csv with `pass`=2 (pass-1 rows get `pass`=1).
+Pass-2 points are not uniform: headline success rates and coverage use `pass == 1` only.
+```bash
+export GAPHUNTER_SIM=mujoco
+.venv/bin/python -m runner.batch  --box local  --n 30  --tag local  --workers 8
+.venv/bin/python -m runner.batch  --box deploy --n 600 --tag deploy --workers 8 --render-failures 4
+.venv/bin/python -m runner.refine --tag deploy --per-cell 10
+```
+Dry run of refine on the current 150-row deploy.csv (13:11, copy, not kept): with ~2.3 trials per cell, all 64
+cells fall under n < 5, so it added 640 points (108/640 = 16.9%), 217 s total. Re-run gives the same rows (only t_wall differs).
