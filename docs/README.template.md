@@ -1,5 +1,12 @@
 # GapHunter
 
+![UR5e peg-in-hole: success at the nominal placement (left), miss outside the benchmark (right)](docs/robot.gif)
+
+*Left: hole at the nominal placement, peg seated. Right: hole moved to dx +0.14 m, dy +0.17 m, outside the
+benchmark's box. The camera estimate is 17.5 mm off and the policy only searches ±1.8 mm, so the peg misses.*
+
+[![Astra-written vs Opus-written policy: success rate over the deployment workspace, dashed box = benchmark](docs/flow.png)](https://ice-citron.github.io/gaphunter/flow.html)
+
 **Demo:** https://ice-citron.github.io/gaphunter/flow.html
 
 **Video:** https://www.youtube.com/watch?v=3-4TG6zC-Rk
