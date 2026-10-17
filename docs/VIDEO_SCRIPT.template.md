@@ -1,6 +1,6 @@
 # Video script: 60 s screen recording, Shi Hao speaks
 
-Fill the `{placeholders}` at 15:00 with `python -m analysis.fill_docs`, then read the script aloud once
+Generated from `docs/VIDEO_SCRIPT.template.md` by `python -m analysis.fill_docs`. Read it aloud once
 with a timer. It must be under 65 s.
 
 Before recording: `streamlit run app/streamlit_app.py`, browser at least 1280 px wide, page scrolled to the top.

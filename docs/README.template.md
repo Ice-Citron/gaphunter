@@ -2,7 +2,7 @@
 
 **Find where your benchmark stopped before the hidden eval does.**
 
-![Success rate of the Astra policy over the deployment domain. The dashed box is the local benchmark.](results/heatmap.png)
+![Success-rate heatmap; dashed box = local benchmark](results/heatmap.png)
 
 ## Problem
 
@@ -19,9 +19,9 @@ benchmark. Task: `DittoOddGeometry-v1` (put a sphere in a basket), Franka arm, M
 
 ## Why Astra as the policy
 
-Astra drives the arm through `llms-for-robot-control`: camera images and robot state go in, a relative
-motion target comes out, and a low-level controller executes it. Policies that LLMs write or drive are
-the ones nobody has a deployment benchmark for yet.
+Astra drives the arm through `llms-for-robot-control`: images and robot state in, a relative motion
+target out, executed by a low-level controller. Nobody has a deployment benchmark yet for policies that
+LLMs write or drive.
 
 ## Two axioms
 
@@ -38,24 +38,26 @@ the ones nobody has a deployment benchmark for yet.
 
 {gap_paragraph}
 
-Coverage uses `dx` × `dy` only; yaw is excluded because it has no effect on a sphere ({coverage_all} with yaw).
+Yaw is excluded from coverage because it has no effect on a sphere ({coverage_all} with yaw).
 
 ## How to reproduce
 
 ```bash
-GAPHUNTER_SIM=ditto .venv/bin/python -m runner.batch --box local  --n 30  --tag local
-GAPHUNTER_SIM=ditto .venv/bin/python -m runner.batch --box deploy --n 100 --tag deploy --render-failures 4
+GAPHUNTER_SIM=ditto .venv/bin/python -m runner.batch --box local  --n {rows_local} --tag local
+GAPHUNTER_SIM=ditto .venv/bin/python -m runner.batch --box deploy --n {rows_deploy} --tag deploy --render-failures 4
+.venv/bin/python -m analysis.fill_docs
 .venv/bin/streamlit run app/streamlit_app.py
 ```
 
-Sim setup: `sim/README.md`. `--fake` uses the analytic fake sim.
+Setup: `sim/README.md`. `--fake` runs the fake sim.
 
 ## Limitations
 
-- One task, one policy.
-- n ≈ 100, so heatmap cells are noisy.
+- One task, one policy, simulation only.
+- n = {n_deploy}, so heatmap cells are noisy.
 - Coverage is box area, not weighted by how often deployment visits a region.
-- Simulation only.
+- Deployment box limited to the arm's reach: {deploy_box}.
+- Object friction raised from 0.10 to 0.5 in both domains (override documented in `sim/README.md`).
 
 ## Roadmap
 
