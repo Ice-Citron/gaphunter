@@ -94,23 +94,25 @@ def _pick_failures(df: pd.DataFrame, k: int) -> list[int]:
     return picked
 
 
-def _render_failures(df: pd.DataFrame, k: int, force_fake: bool, tag: str) -> pd.DataFrame:
+def _render_failures(df: pd.DataFrame, k: int, force_fake: bool, tag: str, n_workers: int = 1) -> pd.DataFrame:
     candidates = _pick_failures(df, len(df))  # whole ranked list; take the first k that fail again
     done = 0
-    with mp.get_context("spawn").Pool(1, initializer=_init_worker, initargs=(force_fake, 0.0)) as pool:
-        for idx in candidates:
-            if done >= k:
-                break
-            params = {c: float(df.at[idx, c]) for c in ("dx", "dy", "yaw")} | {"seed": int(df.at[idx, "seed"])}
-            _, row = pool.apply(_work, ((idx, params, True),))
-            if row["success"]:
-                print(f"WARNING render re-run of row {idx} succeeded; skipping it", file=sys.stderr)
-                continue
-            df.at[idx, "clip"] = row["clip"]
-            df.at[idx, "transcript"] = row["transcript"]
-            done += 1
-            print(f"rendered row {idx} ({df.at[idx, 'failure_mode']}): clip={row['clip']}")
-            _save(df, tag)
+    # Real trials take minutes, so re-run in parallel waves of (k - done) until k clips or no candidates.
+    with mp.get_context("spawn").Pool(max(1, min(n_workers, k)), initializer=_init_worker,
+                                      initargs=(force_fake, 0.0)) as pool:
+        while done < k and candidates:
+            wave, candidates = candidates[:k - done], candidates[k - done:]
+            jobs = [(idx, {c: float(df.at[idx, c]) for c in ("dx", "dy", "yaw")} | {"seed": int(df.at[idx, "seed"])},
+                     True) for idx in wave]
+            for idx, row in pool.imap_unordered(_work, jobs):
+                if row["success"]:
+                    print(f"WARNING render re-run of row {idx} succeeded; skipping it", file=sys.stderr)
+                    continue
+                df.at[idx, "clip"] = row["clip"]
+                df.at[idx, "transcript"] = row["transcript"]
+                done += 1
+                print(f"rendered row {idx} ({df.at[idx, 'failure_mode']}): clip={row['clip']}")
+                _save(df, tag)
     if done < k:
         print(f"WARNING rendered {done}/{k} failure clips", file=sys.stderr)
     return df
@@ -138,7 +140,7 @@ def run_batch(param_list, n_workers=4, render_failures=0, tag="run", force_fake=
     df = _to_df(rows)
     _save(df, tag)
     if render_failures > 0:
-        df = _render_failures(df, render_failures, force_fake, tag)
+        df = _render_failures(df, render_failures, force_fake, tag, n_workers)
     return df
 
 

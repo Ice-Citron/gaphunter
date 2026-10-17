@@ -1,7 +1,8 @@
 # RUNLOG
 
-Real-sim timing (Phase 1, 5 local trials, 1 worker): mean t_wall = TBD s · workers = TBD
-Chosen n: n_local = 30 · n_deploy = TBD  (floor(35 min × workers / t_trial), capped 150, floor 80)
+Real-sim timing (measured by Agent A, 13:00): 170–290 s per trial, API-bound (not GPU); 8 parallel trials run fine.
+Plan: n_local = 20 · n_deploy = 60 · workers = 8 · decision cap 25 (`GAPHUNTER_DECISION_CAP=25`) · 4 failure clips.
+The floor-80 rule is dropped: 60 deploy trials at ~290 s on 8 workers take ~8 waves ≈ 38 min.
 
 ## Fake-sim baseline (runner.fake: |dx|<0.12, |dy|<0.12, |yaw|<45, 5% flips; not real data)
 `python -m runner.batch --box local --n 30 --tag fake_local --fake` → 30/30 (100%)
