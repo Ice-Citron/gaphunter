@@ -25,6 +25,8 @@ _DEPLOY_BOX = {"dx": (-0.20, 0.20), "dy": (-0.20, 0.20), "yaw": (-90.0, 90.0)}
 BG = "#0e1117"
 INK = "#e6e6e6"
 MUTED = "#8b8f98"
+# The one accent: reserved for the outside-box number, the local-box rectangle and the search-range line.
+ACCENT = "#ff5a3c"
 
 
 def default_boxes() -> tuple[dict, dict]:
@@ -201,8 +203,8 @@ def coverage_report(local_df, deploy_df, local_box=None, deploy_box=None, params
 
 def _cmap():
     from matplotlib.colors import LinearSegmentedColormap
-    # red -> neutral grey -> green; the midpoint carries no hue.
-    return LinearSegmentedColormap.from_list("gap", ["#d64545", "#6b6f78", "#2fb36a"])
+    # Neutral sequential: 0% sits near the surface, 100% is light. Colour is kept for the accent only.
+    return LinearSegmentedColormap.from_list("gap", ["#25282f", "#5d6169", "#d9dce1"])
 
 
 def _error_panel(ax, df, succ, cmap, col, search_mm, per_side=4) -> None:
@@ -246,7 +248,7 @@ def _error_panel(ax, df, succ, cmap, col, search_mm, per_side=4) -> None:
     ticks = [t for t in (0.03, 0.1, 0.3, 1, 3, 10, 30) if edges[0] <= t <= edges[-1]]
     ax.set_xticks(ticks, [f"{t:g}" for t in ticks])
     ax.xaxis.set_minor_formatter(plt.NullFormatter())
-    ax.axvline(search_mm, color="white", linestyle=(0, (4, 3)), linewidth=1.8)
+    ax.axvline(search_mm, color=ACCENT, linestyle=(0, (4, 3)), linewidth=2)
     ax.text(search_mm * 1.06, 1.16, f"policy search range ({search_mm:g} mm)", color="white", fontsize=9,
             ha="left", va="top")
 
@@ -309,10 +311,11 @@ def heatmap(df, x="dx", y="dy", local_box=None, path="results/heatmap.png", depl
         for c in range(bins):
             if n[r, c] >= 2:
                 ax.text((xe[c] + xe[c + 1]) / 2, (ye[r] + ye[r + 1]) / 2, f"{rate[r, c]:.0%}",
-                        ha="center", va="center", fontsize=9, color="white")
+                        ha="center", va="center", fontsize=9,
+                        color=BG if rate[r, c] > 0.6 else INK)
     llx, lhx = _range(local_box, x)
     lly, lhy = _range(local_box, y)
-    ax.add_patch(Rectangle((llx, lly), lhx - llx, lhy - lly, fill=False, edgecolor="white",
+    ax.add_patch(Rectangle((llx, lly), lhx - llx, lhy - lly, fill=False, edgecolor=ACCENT,
                            linestyle=(0, (4, 3)), linewidth=1.8))
     ax.text(llx, lhy, " local benchmark", color="white", fontsize=9, va="bottom", ha="left")
     ax.set_xlim(xlo, xhi)

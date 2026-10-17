@@ -3,5 +3,7 @@
   "failure_clip": "results/clips/235c47772ad506e957ba5b5372a46d0814261adc.mp4",
   "failure_transcript": "results/transcripts/235c47772ad506e957ba5b5372a46d0814261adc.json",
   "headline": "At dx = {dx:+.2f} m, dy = {dy:+.2f} m, hole_pose() puts the hole {pose_error_mm:.1f} mm from where it is, about {ratio:.0f}× the ±{search_mm:g} mm that Astra's policy searches around its estimate. The peg ends {lateral_mm:.1f} mm off after {api_calls} API calls, with a peak force of {max_force_N:.1f} N, well under the 150 N abort, so the policy never notices: {failure_mode}.",
-  "quote": "Because camera-error bounds and contact stiffness are unspecified, small steps and an early force threshold reduce risk but cannot guarantee avoiding the 150 N abort threshold"
+  "quote": "Because camera-error bounds and contact stiffness are unspecified, small steps and an early force threshold reduce risk but cannot guarantee avoiding the 150 N abort threshold",
+  "ditto_clip": "results/ditto_gate/clips/8fbd6b97b30b4b1c0f309cbf78e9aaf753d4d403.mp4",
+  "ditto_transcript": "results/ditto_gate/transcripts/8fbd6b97b30b4b1c0f309cbf78e9aaf753d4d403.json"
 }

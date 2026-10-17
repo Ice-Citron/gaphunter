@@ -35,22 +35,25 @@ st.markdown(
 [data-testid="stSidebar"], [data-testid="collapsedControl"] {display: none;}
 .block-container {padding-top: 1rem; padding-bottom: 1rem; max-width: 1280px;}
 h1 {margin-bottom: 0 !important; font-size: 2.3rem !important; padding-top: 0 !important;}
-p.gh-sub, .stMarkdown p.gh-sub {color: #e6e6e6; font-size: 1.25rem !important; margin: 0 0 .2rem 0;}
-p.gh-back, .stMarkdown p.gh-back {color: #c3c7cf; font-size: 1.1rem !important; margin-bottom: .6rem;}
-.gh-tile {background: #1a1d24; border-radius: 8px; padding: .7rem 1rem;}
+p.gh-sub, .stMarkdown p.gh-sub {color: #8b8f98; font-size: 1rem !important; margin: 0 0 .7rem 0;}
+.gh-pull {color: #e6e6e6; font-size: 1.3rem; line-height: 1.45; border-left: 3px solid #5d6169;
+          padding: .1rem 0 .1rem 1rem; margin: 0 0 1rem 0;}
+.gh-pull b {font-size: 1.55rem;}
+.gh-pull span {color: #8b8f98; font-size: 1rem;}
 .gh-tile .lbl {color: #8b8f98; font-size: .8rem; text-transform: uppercase; letter-spacing: .04em;}
-.gh-tile .val {font-size: 2.6rem; font-weight: 700; line-height: 1.1;}
+.gh-tile .val {font-size: 2rem; font-weight: 600; line-height: 1.1; color: #c3c7cf;}
+.gh-tile.hero .val {font-size: 4.2rem; font-weight: 700;}
 .gh-tile .n {color: #8b8f98; font-size: .8rem;}
 .gh-ph {background: #2a2d34; color: #8b8f98; border-radius: 8px; height: 170px;
         display: flex; align-items: center; justify-content: center; text-align: center; padding: 1rem;}
 .gh-report {font-size: 1rem; line-height: 1.55;}
 .gh-src {color: #8b8f98; font-size: .75rem;}
-.gh-foot {color: #8b8f98; font-size: .85rem; border-top: 1px solid #30343c; padding-top: .6rem; margin-top: .8rem;}
+.gh-foot {color: #8b8f98; font-size: .85rem; padding-top: .6rem; margin-top: .8rem;}
 video {max-height: 170px;}
-.gh-badge {color: #0e1117; font-weight: 600; border-radius: 4px; padding: 0 .35rem; font-size: .75rem;}
+.gh-badge {color: #e6e6e6; background: #30343c; font-weight: 600; border-radius: 4px; padding: 0 .35rem; font-size: .75rem;}
 .gh-cap {color: #8b8f98; font-size: .8rem; line-height: 1.5;}
-.gh-head {color: #e6e6e6; font-size: .95rem; border-left: 3px solid #d64545; padding: .2rem .6rem; margin: .3rem 0 .5rem 0;}
-.gh-quote {color: #e6e6e6; border-left: 3px solid #6b6f78; margin: 0 0 .6rem 0; padding: .2rem .7rem;}
+.gh-head {color: #e6e6e6; font-size: .95rem; margin: .3rem 0 .5rem 0;}
+.gh-quote {color: #e6e6e6; font-style: italic; margin: 0 0 .6rem 0; padding: 0;}
 .gh-quote span {color: #8b8f98; font-size: .8rem;}
 h3 {padding: .4rem 0 .3rem 0 !important;}
 </style>
@@ -58,15 +61,11 @@ h3 {padding: .4rem 0 .3rem 0 !important;}
     unsafe_allow_html=True,
 )
 
-GREEN, RED, GREY = "#2fb36a", "#d64545", "#8b8f98"
-# One fixed colour per failure mode (hex for badges, Streamlit colour name for radio labels).
-MODE_COLOR = {"miss": ("#d64545", "red"), "jam": ("#e0a030", "orange"), "collision": ("#a874d8", "violet"),
-              "timeout": ("#8b8f98", "gray"), "api_error": ("#5b5f68", "gray"), "": (GREEN, "green")}
+from analysis.coverage import ACCENT  # noqa: E402  the one accent colour; everything else is neutral
 
 
 def _badge(mode: str) -> str:
-    hexc = MODE_COLOR.get(mode, (GREY, "gray"))[0]
-    return f'<span class="gh-badge" style="background:{hexc}">{html.escape(mode or "success")}</span>'
+    return f'<span class="gh-badge">{html.escape(mode or "success")}</span>'
 
 
 def placeholder(msg: str) -> None:
@@ -290,10 +289,11 @@ def show_transcript(path) -> None:
             st.code(act, language="json", wrap_lines=True)
 
 
-def tile(col, label: str, value: float, n: int, color: str) -> None:
+def tile(col, label: str, value: float, n: int, hero: bool = False) -> None:
     v = "—" if pd.isna(value) else f"{value:.0%}"
-    col.markdown(f'<div class="gh-tile"><div class="lbl">{label}</div>'
-                 f'<div class="val" style="color:{color}">{v}</div><div class="n">n = {n}</div></div>',
+    style = f' style="color:{ACCENT}"' if hero else ""
+    col.markdown(f'<div class="gh-tile{" hero" if hero else ""}"><div class="lbl">{label}</div>'
+                 f'<div class="val"{style}>{v}</div><div class="n">n = {n}</div></div>',
                  unsafe_allow_html=True)
 
 
@@ -328,15 +328,16 @@ lb, db = default_boxes()
 rep = coverage_report(local_df, deploy_df, lb, db)
 
 st.title("GapHunter")
-st.markdown('<p class="gh-sub">Find where your benchmark stopped before the hidden eval does.</p>'
-            '<p class="gh-back">Intrinsic AIC 2026: our policy scored 141 on the local benchmark and 89 on '
-            'the hidden eval. The local scenes randomised the board over a radius about 1/3 smaller '
-            'than the real one.</p>', unsafe_allow_html=True)
+st.markdown('<p class="gh-sub">The goal of any robotics firm is to deploy a system with four-nines reliability '
+            'as cheaply as possible.</p>'
+            '<div class="gh-pull"><b>141 local → 89 hidden.</b> Intrinsic AIC 2026: one policy, scored on our own '
+            'benchmark and then on the hidden eval.<br><span>The local scenes randomised the board over a radius '
+            'about a third smaller than the real one.</span></div>', unsafe_allow_html=True)
 
-t1, t2, t3 = st.columns(3)
-tile(t1, "local success (in the benchmark)", rep["local_success"], rep["n_local"], GREEN)
-tile(t2, "deployment success", rep["deploy_success"], rep["n_deploy"], RED)
-tile(t3, "outside the local box", rep["outside_local_success"], rep["n_outside"], RED)
+t1, t2, t3 = st.columns([1.4, 1, 1])
+tile(t1, "success outside the local box", rep["outside_local_success"], rep["n_outside"], hero=True)
+tile(t2, "success inside the benchmark", rep["local_success"], rep["n_local"])
+tile(t3, "success over the deployment box", rep["deploy_success"], rep["n_deploy"])
 
 hm_path = RESULTS / ("heatmap.png" if source == "real" else "heatmap_fake.png")
 all_df = pd.concat([local_df, deploy_df], ignore_index=True)
@@ -360,7 +361,7 @@ with left:
                 f'local ∕ deployment ({rep["coverage_fraction_all_params"]:.1%} without yaw folding) · '
                 f'rates from the uniform pass only.</p>', unsafe_allow_html=True)
 with right:
-    if st.button("Re-run coverage", type="primary", help="Runs 10 new trials sampled over the deployment box."):
+    if st.button("Re-run coverage", type="secondary", help="Runs 10 new trials sampled over the deployment box."):
         try:
             new = rerun_coverage(10)
             st.session_state["extra"] = pd.concat(
@@ -382,8 +383,7 @@ with c2:
     fails = failure_clips(deploy_df, feat.get("failure_clip"))
     if len(fails) > 1:
         def _label(i):
-            m = str(fails[i].get("failure_mode") or "failure")
-            return f":{MODE_COLOR.get(m, (GREY, 'gray'))[1]}[● {m}] {i + 1}"
+            return f"{fails[i].get('failure_mode') or 'failure'} {i + 1}"
         pick = st.radio("Failure clip", range(len(fails)), format_func=_label, horizontal=True,
                         label_visibility="collapsed")
         bad_row = fails[pick]
@@ -406,6 +406,31 @@ with c3:
                         unsafe_allow_html=True)
         show_transcript((feat.get("failure_transcript") if is_featured else None)
                         or (bad_row or {}).get("transcript"))
+
+ditto_clip = _resolve(feat.get("ditto_clip"))
+with st.expander("First attempt: Astra driving the Franka live"):
+    d1, d2 = st.columns([1, 2], gap="medium")
+    with d1:
+        if ditto_clip:
+            st.video(str(ditto_clip))
+            steps = []
+            try:
+                tp = _resolve(feat.get("ditto_transcript"))
+                steps = _transcript(str(tp), _mtime(tp)) if tp else []
+            except Exception:
+                pass
+            secs = sum((x.get("elapsed_s") or 0) for x in steps if isinstance(x, dict))
+            st.markdown(f'<p class="gh-cap">Ditto Bench sphere-in-basket, nominal placement (dx = dy = yaw = 0), '
+                        f'seed 1 · {len(steps)} Astra decisions · {secs:.0f} s of model time</p>',
+                        unsafe_allow_html=True)
+        else:
+            placeholder("Ditto clip not found.")
+    with d2:
+        st.markdown("Astra first drove a Franka on Ditto Bench one decision at a time, from camera images, and "
+                    "failed all 6 gate trials at the nominal placement, inside the local box. Each trial took "
+                    "about 3 minutes, too slow to sample a deployment domain, so we switched to a policy Astra "
+                    "writes once and that runs in MuJoCo in under 2 seconds per trial.")
+        show_transcript(feat.get("ditto_transcript"))
 
 st.markdown(
     '<div class="gh-foot">'
