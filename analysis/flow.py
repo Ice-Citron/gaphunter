@@ -47,13 +47,23 @@ def _local_boxes() -> dict:
         return {}
 
 
-def _pi05() -> dict | None:
+def _history_rows(names=("pi05", "gemini-robotics", "gr00t")) -> list[dict]:
+    """Planned rows that were dropped from policies.json, from its committed version in ab7b5c7."""
     try:
         old = json.loads(subprocess.run(["git", "show", "ab7b5c7:results/policies.json"], cwd=ROOT,
                                         capture_output=True, text=True, check=True).stdout)
-        return next((r for r in old if r["policy"] == "pi05"), None)
+        return [r for r in old if r["policy"] in names]
     except Exception:
-        return None
+        return []
+
+
+# Illustrative placeholders for the policies table: no checkpoint, no data, always greyed out.
+PLACEHOLDERS = [
+    {"policy": "act-finetune", "family": "Imitation learning (ACT)", "model": "your fine-tuned checkpoint",
+     "sim": "mujoco", "notes": "Placeholder: an ACT policy fine-tuned on your demonstrations."},
+    {"policy": "custom-upload", "family": "Custom", "model": "you",
+     "sim": None, "notes": "Placeholder: any policy that implements run_trial(params) -> TrialResult."},
+]
 
 
 def _copy(rel: str) -> str | None:
@@ -137,11 +147,14 @@ def build(readme: Path | None = None) -> Path:
         sim = pol.get("sim") or "mujoco"
         pols.append(_policy(pol, boxes.get(pol["policy"], dl if sim == "ditto" else lb0),
                             dd if sim == "ditto" else db0, feat))
-    if (p5 := _pi05()) and not any(p["id"] == "pi05" for p in pols):
-        pols.append({"id": "pi05", "family": p5.get("family") or "", "author": p5.get("model") or "",
-                     "sim": p5.get("sim") or "ditto", "task": TASK_OF_SIM.get(p5.get("sim"), "sphere"),
-                     "note": p5.get("notes") or "", "status": "planned", "last": "", "rows": [], "clips": [],
-                     "why": "", "box": None, "check": None})
+    for old in _history_rows() + PLACEHOLDERS:
+        if any(p["id"] == old["policy"] for p in pols):
+            continue
+        sim = old.get("sim")
+        pols.append({"id": old["policy"], "family": old.get("family") or "", "author": old.get("model") or "",
+                     "sim": sim or "", "task": TASK_OF_SIM.get(sim) if sim else "", "note": old.get("notes") or "",
+                     "status": "planned", "last": "", "rows": [], "clips": [], "why": "", "box": None,
+                     "check": None, "placeholder": old in PLACEHOLDERS})
     table = policy_table("results/policies.json", root=str(ROOT), local_box=lb0, deploy_box=db0)
     shutil.copyfile(readme or ROOT / "README.md", ASSETS / "README.md")
     data = {"policies": pols, "bins": BINS,

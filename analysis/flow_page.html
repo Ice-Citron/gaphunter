@@ -97,6 +97,9 @@ svg.hm { width: 100%; height: auto; display: block; }
 .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; align-items: start; }
 .why { margin: 12px 0 0; padding-top: 10px; border-top: 1px solid var(--line); }
 .sub { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 16px 0 8px; }
+.addform { margin-bottom: 16px; }
+.addform input[type=file] { width: 320px; border: 0; padding: 0; }
+.addform input[type=text], .addform select { border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; background: var(--bg); }
 .hidden { display: none !important; }
 @media (max-width: 860px) {
   .app { grid-template-columns: minmax(0, 1fr); }
@@ -115,8 +118,6 @@ svg.hm { width: 100%; height: auto; display: block; }
   <span class="logo">GapHunter</span>
   <span class="crumb" id="crumb"></span>
   <span class="sp"></span>
-  <span class="pill">Replay of committed runs</span>
-  <a class="pill" href="https://github.com/Ice-Citron/gaphunter">GitHub</a>
 </header>
 <div class="app">
   <nav class="rail" aria-label="Steps"><h4>Workflow</h4><ol class="steps" id="steps"></ol></nav>
@@ -130,7 +131,21 @@ svg.hm { width: 100%; height: auto; display: block; }
     </section>
 
     <section data-step="1" class="hidden">
-      <div class="head"><div><h1>Policies</h1><p class="lede">Select the policies to sweep. Every policy runs through the same harness.</p></div></div>
+      <div class="head"><div><h1>Policies</h1><p class="lede">Select the policies to sweep. Every policy runs through the same harness.</p></div>
+        <button class="btn ghost" id="add">+ Add policy</button></div>
+      <div class="tbl addform hidden" id="addform">
+        <table class="kv">
+          <tr><th colspan="2">New policy</th></tr>
+          <tr><td>Name</td><td><input type="text" placeholder="my-policy" style="width:240px"></td></tr>
+          <tr><td>Family</td><td><select style="width:240px"><option>Imitation learning (ACT, Diffusion Policy)</option><option>VLA</option>
+            <option>LLM-written policy code</option><option>LLM closed-loop control</option><option>Scripted</option></select></td></tr>
+          <tr><td>Task</td><td><select style="width:240px" id="add-task"></select></td></tr>
+          <tr><td>Entry point</td><td><code>run_trial(params, render=False) -&gt; TrialResult</code></td></tr>
+          <tr><td>Checkpoint or policy file</td><td><input type="file"></td></tr>
+          <tr><td></td><td><button class="btn" disabled>Add policy</button>
+            <span class="note">Uploads are not available in this build. To add a policy, add an entry to <code>runner/policies.py</code>; see "Add your own policy" in the README.</span></td></tr>
+        </table>
+      </div>
       <div class="tbl"><table id="pols"></table></div>
     </section>
 
@@ -231,10 +246,10 @@ function policies() {
   put($("pols"), `<tr><th></th><th>Policy</th><th>Family</th><th>Author</th><th>Task</th><th>Last result</th><th class="n">Trials</th></tr>` +
     D.policies.map(p => {
       const off = !has(p) || p.task !== S.task;
-      const last = !has(p) ? "no checkpoint in this build" : p.task !== S.task ? "other task" : p.last;
+      const last = !has(p) ? (p.placeholder ? "placeholder · " : "") + "no checkpoint in this build" : p.task !== S.task ? "other task" : p.last;
       return `<tr class="${off ? "off" : "click"} ${S.sel.has(p.id) && !off ? "sel" : ""}" data-id="${esc(p.id)}" title="${esc(p.note)}">
         <td><span class="box"></span></td><td><b>${esc(p.id)}</b></td><td>${esc(p.family)}</td><td>${esc(p.author)}</td>
-        <td>${esc(taskOf(p.task).t)}</td><td>${esc(last)}</td><td class="n">${has(p) ? p.rows.length : ""}</td></tr>`;
+        <td>${esc(p.task ? taskOf(p.task).t : "any task")}</td><td>${esc(last)}</td><td class="n">${has(p) ? p.rows.length : ""}</td></tr>`;
     }).join(""));
   $("pols").querySelectorAll("tr.click").forEach(r => r.onclick = () => {
     S.sel.has(r.dataset.id) ? S.sel.delete(r.dataset.id) : S.sel.add(r.dataset.id);
@@ -381,6 +396,8 @@ function compare() {
     `<tr class="${r[8] === "planned" ? "off" : ""}">${r.map((v, i) => `<td class="${i >= 3 && i <= 7 ? "n" : ""}">${esc(i === 2 && v.includes("sphere") ? "Sphere-in-basket, Franka" : v)}</td>`).join("")}</tr>`).join(""));
 }
 
+$("add").onclick = () => $("addform").classList.toggle("hidden");
+put($("add-task"), TASKS.map(t => `<option ${t.off ? "disabled" : ""}>${esc(t.t)}${t.off ? " — " + NA : ""}</option>`).join(""));
 $("back").onclick = () => go(Math.max(0, S.step - 1));
 $("next").onclick = () => go(Math.min(4, S.step + 1));
 $("launch").onclick = () => { S.reached = Math.max(S.reached, 3); go(3); };
