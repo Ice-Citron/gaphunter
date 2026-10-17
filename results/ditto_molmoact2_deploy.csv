@@ -1,0 +1,4 @@
+dx,dy,yaw,seed,success,failure_mode,n_decisions,t_wall,clip,transcript,pose_error_mm,pass
+0.094763,0.08269,-50.162255,200,True,,19,45.11020469665527,results/clips/ditto-molmoact2_ditto-462f630d1c36dab92dd4fef8fd0662aa3bbf5462.mp4,results/transcripts/ditto-molmoact2_ditto-462f630d1c36dab92dd4fef8fd0662aa3bbf5462.json,,1
+-0.025732,0.131883,7.919156,201,False,timeout,30,64.80895972251892,results/clips/ditto-molmoact2_ditto-96f734505153bbf6e3dd70ea092d6f09297fa721.mp4,results/transcripts/ditto-molmoact2_ditto-96f734505153bbf6e3dd70ea092d6f09297fa721.json,,1
+-0.07076,-0.017033,-4.789763,202,False,drop,30,73.18053245544434,results/clips/ditto-molmoact2_ditto-bde5a4584aae75b19074995d3b884c6b1cf989aa.mp4,results/transcripts/ditto-molmoact2_ditto-bde5a4584aae75b19074995d3b884c6b1cf989aa.json,,1

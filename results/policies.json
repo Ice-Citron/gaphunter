@@ -72,9 +72,9 @@
   "status": "smoke",
   "n_local": 2,
   "local_success": 0.0,
-  "n_deploy": 2,
-  "deploy_success": 0.5,
-  "outside_success": 0.5,
+  "n_deploy": 3,
+  "deploy_success": 0.3333,
+  "outside_success": 0.3333,
   "local_csv": "results/ditto_molmoact2_local.csv",
   "deploy_csv": "results/ditto_molmoact2_deploy.csv",
   "notes": "Native MolmoAct2-DROID checkpoint, 15 Hz, 450 steps."
