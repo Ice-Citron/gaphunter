@@ -9,13 +9,15 @@ import numpy as np
 import pandas as pd
 
 PARAMS = ("dx", "dy", "yaw")
-UNITS = {"dx": "m", "dy": "m", "yaw": "deg"}
-# Parameters that change the task. Yaw has no effect on the `easy` sphere; use PARAMS for `medium`.
-ACTIVE_PARAMS = ("dx", "dy")
+UNITS = {"dx": "m", "dy": "m", "yaw": "deg", "r": "m"}
+# Parameters that change the task. The square peg makes yaw matter.
+ACTIVE_PARAMS = ("dx", "dy", "yaw")
+# The square peg looks the same every 90°, so yaw is folded into [-45, 45). None disables folding.
+YAW_PERIOD = 90.0
 
 # Spec defaults, used only when runner.sample is not importable.
 _LOCAL_BOX = {"dx": (-0.05, 0.05), "dy": (-0.05, 0.05), "yaw": (-15.0, 15.0)}
-_DEPLOY_BOX = {"dx": (-0.20, 0.20), "dy": (-0.08, 0.20), "yaw": (-90.0, 90.0)}
+_DEPLOY_BOX = {"dx": (-0.20, 0.20), "dy": (-0.20, 0.20), "yaw": (-90.0, 90.0)}
 
 # Dark surface shared with the Streamlit page.
 BG = "#0e1117"
@@ -40,6 +42,29 @@ def _range(box: dict, p: str) -> tuple[float, float]:
     else:
         lo, hi = r
     return float(lo), float(hi)
+
+
+def fold_yaw(df: pd.DataFrame) -> pd.DataFrame:
+    if not YAW_PERIOD or "yaw" not in df:
+        return df
+    df = df.copy()
+    df["yaw"] = (df["yaw"] + YAW_PERIOD / 2) % YAW_PERIOD - YAW_PERIOD / 2
+    return df
+
+
+def fold_box(box: dict) -> dict:
+    """Clip the yaw range to one symmetry period: the distinct orientations the box contains."""
+    if not YAW_PERIOD or "yaw" not in box:
+        return box
+    lo, hi = _range(box, "yaw")
+    if hi - lo >= YAW_PERIOD:
+        lo, hi = -YAW_PERIOD / 2, YAW_PERIOD / 2
+    return {**box, "yaw": (max(lo, -YAW_PERIOD / 2), min(hi, YAW_PERIOD / 2))}
+
+
+def inside_local(df: pd.DataFrame, local_box: dict, params=ACTIVE_PARAMS) -> pd.Series:
+    """True for rows inside the local box over the task-relevant params, yaw folded."""
+    return _inside(fold_yaw(df), fold_box(local_box), params)
 
 
 def _volume(box: dict, params=PARAMS) -> float:
@@ -113,8 +138,12 @@ def coverage_report(local_df, deploy_df, local_box=None, deploy_box=None, params
     local_df, deploy_df = _drop_infra(local_df), _drop_infra(deploy_df)
     n_infra -= len(local_df) + len(deploy_df)
 
+    cov_all = _volume(local_box) / _volume(deploy_box)  # raw 3-D box ratio, no folding
+    folded = "yaw" in params and bool(YAW_PERIOD)
+    if folded:
+        local_df, deploy_df = fold_yaw(local_df), fold_yaw(deploy_df)
+        local_box, deploy_box = fold_box(local_box), fold_box(deploy_box)
     cov = _volume(local_box, params) / _volume(deploy_box, params)
-    cov_all = _volume(local_box) / _volume(deploy_box)
     local = float(_success(local_df).mean()) if len(local_df) else float("nan")
     deploy = float(_success(deploy_df).mean()) if len(deploy_df) else float("nan")
     outside_mask = ~_inside(deploy_df, local_box, params)
@@ -135,7 +164,8 @@ def coverage_report(local_df, deploy_df, local_box=None, deploy_box=None, params
     ignored = [p for p in PARAMS if p not in params]
     text = (
         f"The local benchmark covers {cov:.1%} of the deployment domain by {measure} ({dims}"
-        f"{'; ' + ', '.join(ignored) + ' has no effect on this task' if ignored else ''}). "
+        f"{'; ' + ', '.join(ignored) + ' has no effect on this task' if ignored else ''}"
+        f"{f'; yaw folded to ±{YAW_PERIOD / 2:.0f}° by the peg symmetry' if folded else ''}). "
         f"The policy succeeds on {_pct(local)} of local trials (n={len(local_df)}) and "
         f"{_pct(deploy)} of deployment trials (n={len(deploy_df)}); outside the local box it succeeds on "
         f"{_pct(outside)} (n={int(outside_mask.sum())}). Failures concentrate in: {where}. "
@@ -178,7 +208,16 @@ def heatmap(df, x="dx", y="dy", local_box=None, path="results/heatmap.png", depl
     local_box = local_box or lb
     deploy_box = deploy_box or db
     cmap = _cmap()
-    df = _drop_infra(df)
+    df = fold_yaw(_drop_infra(df))
+    local_box, deploy_box = fold_box(local_box), fold_box(deploy_box)
+    df = df.assign(r=np.hypot(df["dx"], df["dy"]))
+    dxl, dxh = _range(deploy_box, "dx")
+    dyl, dyh = _range(deploy_box, "dy")
+    lxl, lxh = _range(local_box, "dx")
+    lyl, lyh = _range(local_box, "dy")
+    # r: distance from the nominal pose. "local" is the largest circle inside the local box.
+    deploy_box = {**deploy_box, "r": (0.0, float(np.hypot(max(-dxl, dxh), max(-dyl, dyh))))}
+    local_box = {**local_box, "r": (0.0, min(-lxl, lxh, -lyl, lyh))}
     succ = _success(df).to_numpy()
 
     fig, (ax, ax2) = plt.subplots(1, 2, figsize=(1600 / 150, 800 / 150), dpi=150,
@@ -252,8 +291,10 @@ def heatmap(df, x="dx", y="dy", local_box=None, path="results/heatmap.png", depl
     ax2.set_ylim(0, 1.2)
     ax2.set_yticks([0, 0.5, 1])
     ax2.set_yticklabels(["0%", "50%", "100%"])
-    ax2.set_xlabel(f"{m} offset ({UNITS[m]})", color=INK, fontsize=10)
-    ax2.set_title(f"Success rate by {m}", color=INK, fontsize=12, loc="left")
+    name = "distance from nominal pose" if m == "r" else f"{m} offset"
+    ax2.set_xlabel(f"{name} ({UNITS[m]})", color=INK, fontsize=10)
+    ax2.set_title("Success rate by distance from centre" if m == "r" else f"Success rate by {m}",
+                  color=INK, fontsize=12, loc="left")
     ax2.grid(axis="y", color="#30343c", linewidth=0.6)
     ax2.set_axisbelow(True)
 

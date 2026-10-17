@@ -8,11 +8,11 @@ Before recording: `streamlit run app/streamlit_app.py`, browser at least 1280 px
 | time | say | screen |
 |---|---|---|
 | 0–15 s | "In June our robot policy scored 141 on our own benchmark and 89 on the hidden one. The benchmark never tested the far placements." | Page title and the backstory line. |
-| 15–35 s | "GapHunter samples the deployment domain, runs the policy — here, Astra driving a Franka — and maps where it breaks." | Click **Re-run coverage**. Show the progress bar. Then the heatmap and the dashed box. |
+| 15–35 s | "GapHunter samples the deployment domain, runs the policy — here, one Astra wrote for a UR5e peg-in-hole — and maps where it breaks." | Click **Re-run coverage**. Show the progress bar. Then the heatmap and the dashed box. |
 | 35–50 s | "Inside the box, {local_success}. Outside, {outside_success}. Here's the failure, and here's what Astra thought it was doing." | Point at the tiles. Play the failure clip. Open **What Astra was thinking**. |
 | 50–60 s | "Four-nines reliability is the job. You can't get there on a benchmark that stops here." | Hover the dashed rectangle. Cut. |
 
-Numbers on screen for reference: benchmark covers {coverage} of the deployment area · deployment
+Numbers on screen for reference: benchmark covers {coverage} of the deployment domain · deployment
 success {deploy_success} (n={n_deploy}) · local n={n_local} · outside n={n_outside}.
 
 ## Re-run during recording

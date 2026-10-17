@@ -23,7 +23,7 @@ DOCS = ("README.md", "VIDEO_SCRIPT.md")
 UNIT = {"dx": "m", "dy": "m", "yaw": "°"}
 
 
-def box_text(box: dict, params=("dx", "dy")) -> str:
+def box_text(box: dict, params=("dx", "dy", "yaw")) -> str:
     parts = []
     for p in params:
         lo, hi = _range(box, p)

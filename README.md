@@ -7,21 +7,20 @@
 ## Problem
 
 In Intrinsic AIC 2026 our policy scored 141 on our local benchmark and 89 on the hidden evaluation.
-The local scenes randomised the board over a radius about one third smaller than the real one.
-The policy did not get worse; the benchmark never tested the placements where it fails.
+The local scenes randomised the board over a radius a third smaller than the real one.
+The policy did not regress; the benchmark never tested where it fails.
 
 ## What GapHunter does
 
-**Sample → run → map → report.** GapHunter draws Sobol samples of the object offset (`dx`, `dy`, yaw)
-from the benchmark's box and from a wider deployment box. It runs the policy in simulation on each sample,
-scores it with Ditto Bench's own success flag, maps success, and reports where it fails outside the
-benchmark. Task: `DittoOddGeometry-v1` (put a sphere in a basket), Franka arm, ManiSkill 3.
+**Sample → run → map → report.** GapHunter samples the hole offset (`dx`, `dy`, yaw) from the
+benchmark's box and a wider deployment box, runs the policy on each sample in simulation, and maps where
+it fails. Task: MuJoCo peg-in-hole on a UR5e, a 20 mm square peg into a 21 mm hole. Success is depth ≥ 30 mm with lateral error < 1 mm.
 
 ## Why Astra as the policy
 
-Astra drives the arm through `llms-for-robot-control`: images and robot state in, a relative motion
-target out, executed by a low-level controller. Nobody has a deployment benchmark yet for policies that
-LLMs write or drive.
+Astra writes the policy once: given a four-function API (`hole_pose`, `move_to`, `step_down`, `done`),
+it returns `policy.py`, which runs unchanged on every trial. LLM-written policies have no deployment
+benchmarks yet.
 
 ## Two axioms
 
@@ -38,26 +37,29 @@ LLMs write or drive.
 
 {gap_paragraph}
 
-Yaw is excluded from coverage because it has no effect on a sphere ({coverage_all} with yaw).
+Yaw is folded to ±45° because the square peg has 90° symmetry ({coverage_all} without folding).
 
 ## How to reproduce
 
 ```bash
-GAPHUNTER_SIM=ditto .venv/bin/python -m runner.batch --box local  --n {rows_local} --tag local
-GAPHUNTER_SIM=ditto .venv/bin/python -m runner.batch --box deploy --n {rows_deploy} --tag deploy --render-failures 4
+.venv/bin/python -m runner.batch --box local  --n {rows_local} --tag local
+.venv/bin/python -m runner.batch --box deploy --n {rows_deploy} --tag deploy --render-failures 4
 .venv/bin/python -m analysis.fill_docs
 .venv/bin/streamlit run app/streamlit_app.py
 ```
 
-Setup: `sim/README.md`. `--fake` runs the fake sim.
+Setup: `sim/README.md`.
 
 ## Limitations
 
 - One task, one policy, simulation only.
 - n = {n_deploy}, so heatmap cells are noisy.
-- Coverage is box area, not weighted by how often deployment visits a region.
-- Deployment box limited to the arm's reach: {deploy_box}.
-- Object friction raised from 0.10 to 0.5 in both domains (override documented in `sim/README.md`).
+- Coverage is unweighted box volume.
+- `hole_pose()` is a modelled camera calibrated on the local region. Its radial-distortion error grows
+  as r³ (0.3 mm at 5 cm, 15 mm at 20 cm), a model we chose to mirror AIC.
+
+**First attempt:** Astra driving a Franka step by step on Ditto Bench's sphere-in-basket task failed
+our gate (0 of 6), so we switched to this fallback.
 
 ## Roadmap
 
@@ -68,10 +70,11 @@ Setup: `sim/README.md`. `--fake` runs the fake sim.
 
 ## Credits
 
-[llms-for-robot-control](https://github.com/llong-cs/llms-for-robot-control) (MIT), ManiSkill 3 / SAPIEN,
-Ditto Bench and MolmoAct2 assets. Astra via OpenAI credits.
+MuJoCo; Astra (`gpt-6-astra`) via OpenAI credits. Ditto attempt:
+[llms-for-robot-control](https://github.com/llong-cs/llms-for-robot-control) (MIT), ManiSkill 3, Ditto Bench,
+MolmoAct2 assets.
 
 ## Team
 
-Shi Hao ([@Ice-Citron](https://github.com/Ice-Citron)), with three Claude Code agents (sim, runner,
-analysis/UI). MicroAGI Physical AI Hackathon, Carnaby St, London.
+Shi Hao ([@Ice-Citron](https://github.com/Ice-Citron)) with three Claude Code agents. MicroAGI Physical AI
+Hackathon, London.

@@ -22,7 +22,7 @@ import analysis.coverage  # noqa: E402
 
 # Streamlit reruns this script but keeps imported modules; reload so edits to the analysis show up.
 importlib.reload(analysis.coverage)
-from analysis.coverage import coverage_report, default_boxes, heatmap  # noqa: E402
+from analysis.coverage import coverage_report, default_boxes, heatmap, inside_local  # noqa: E402
 
 st.set_page_config(page_title="GapHunter", layout="wide", initial_sidebar_state="collapsed")
 
@@ -133,19 +133,12 @@ def _featured() -> dict:
         return {}
 
 
-def _inside(df: pd.DataFrame, box: dict) -> pd.Series:
-    m = pd.Series(True, index=df.index)
-    for k in ("dx", "dy", "yaw"):
-        m &= df[k].between(*box[k])
-    return m
-
-
 def pick_clip(df: pd.DataFrame, want_success: bool, box: dict) -> dict | None:
     """First row with an existing clip: inside the box for a success, outside for a failure."""
     if df.empty or "clip" not in df:
         return None
     succ = df["success"].astype(str).str.lower().isin(("true", "1"))
-    region = _inside(df, box) if want_success else ~_inside(df, box)
+    region = inside_local(df, box) if want_success else ~inside_local(df, box)
     for _, row in df[(succ == want_success) & region].iterrows():
         if _resolve(row.get("clip")):
             return row.to_dict()
@@ -166,7 +159,7 @@ def show_clip(row: dict | None, path_override: str | None, empty_msg: str) -> No
         st.video(str(clip))
     if row:
         st.caption(f"dx={row['dx']:+.3f} m · dy={row['dy']:+.3f} m · yaw={row['yaw']:+.0f}° · "
-                   f"{row.get('failure_mode') or 'success'} · {int(row.get('n_decisions', 0))} decisions")
+                   f"{row.get('failure_mode') or 'success'} · {int(row.get('n_decisions', 0))} Astra calls")
 
 
 def _trim(v, limit=1500):
@@ -180,6 +173,32 @@ def _trim(v, limit=1500):
     return v
 
 
+def _cell(v) -> str:
+    return v if isinstance(v, str) else json.dumps(v, default=str)
+
+
+def show_policy_transcript(data: dict) -> None:
+    """MuJoCo peg-in-hole: one policy-writing exchange, then the API-call log of the run."""
+    out = data.get("outcome") or {}
+    facts = [f"{k}: {out[k]:.1f}" if isinstance(out.get(k), float) else f"{k}: {out[k]}"
+             for k in ("failure_mode", "depth_mm", "lateral_mm", "yaw_err_deg") if out.get(k) not in (None, "")]
+    if facts:
+        st.markdown("**Outcome** — " + " · ".join(facts))
+    ex = data.get("policy_exchange") or {}
+    resp, code = ex.get("response") or "", ex.get("code") or ""
+    st.markdown(f"**Astra's reply** ({ex.get('model', 'Astra')}, verbatim)")
+    st.code(resp or "(empty)", language=None, wrap_lines=True, height=200)
+    if code and code.strip() not in resp:
+        st.markdown("**policy.py**")
+        st.code(code, language="python", height=200)
+    steps = data.get("steps") or []
+    if steps:
+        st.markdown(f"**Last {min(5, len(steps))} of {len(steps)} API calls**")
+        rows = [{"i": d.get("i"), "api": d.get("api"), "args": _cell(d.get("args")),
+                 "result": _cell(d.get("result")), "force_N": d.get("force_N")} for d in steps[-5:]]
+        st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch")
+
+
 def show_transcript(path) -> None:
     p = _resolve(path)
     if p is None:
@@ -189,6 +208,9 @@ def show_transcript(path) -> None:
         data = _transcript(str(p), _mtime(p))
     except Exception as e:
         st.caption(f"Transcript unreadable: {e}")
+        return
+    if isinstance(data, dict) and "policy_exchange" in data:
+        show_policy_transcript(data)
         return
     steps = data if isinstance(data, list) else data.get("decisions", data.get("steps", [data]))
     st.caption(f"Last {min(5, len(steps))} of {len(steps)} decisions, verbatim. Prompt text omitted.")
