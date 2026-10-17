@@ -11,7 +11,7 @@ mirroring the AIC calibration radius, not a measured camera effect.*
 
 In Intrinsic AIC 2026 our policy scored 141 on our local benchmark and 89 on the hidden evaluation.
 The local scenes randomised the board over a radius a third smaller than the real one.
-The policy did not regress; the benchmark never tested where it fails.
+The benchmark never tested where the policy fails.
 
 ## What GapHunter does
 
