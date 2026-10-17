@@ -2,6 +2,8 @@ dx,dy,yaw,seed,success,failure_mode,n_decisions,t_wall,clip,transcript,pose_erro
 0.0,0.0,0.0,10,False,timeout,25,273.77574253082275,,results/ditto_gate/transcripts/c25b014dcf46b5e29813776052d32e0629ee4719.json,,1
 0.0,0.0,0.0,11,False,drop,22,296.0455720424652,,results/ditto_gate/transcripts/8138ef625535672e9a31643127951a2236669578.json,,1
 0.0,0.0,0.0,12,False,drop,25,334.84523916244507,,results/ditto_gate/transcripts/b68b7605a48bea218d7afdfaa63bd8a53adfb3ac.json,,1
-0.0,0.0,0.0,20,False,drop,18,200.97970914840698,,results/ditto_gate/transcripts/c8860ec59d58554c304ebaec1812c8ad2ad37dfd.json,,1
+0.0,0.0,0.0,20,False,drop,18,200.97970914840695,,results/ditto_gate/transcripts/c8860ec59d58554c304ebaec1812c8ad2ad37dfd.json,,1
 0.0,0.0,0.0,21,False,drop,14,172.54440021514893,,results/ditto_gate/transcripts/af6e55f14f6de83c30f2bdc86f0466e7f57a86cb.json,,1
-0.0,0.0,0.0,22,False,drop,17,198.96940779685974,,results/ditto_gate/transcripts/5eaabb73030c13601f8ced63196270157a393050.json,,1
+0.0,0.0,0.0,22,False,drop,17,198.9694077968597,,results/ditto_gate/transcripts/5eaabb73030c13601f8ced63196270157a393050.json,,1
+0.0,0.0,0.0,13,False,miss,25,337.1222288608551,results/clips/ditto-agent-30965a808c9d29a7ab38a258be60621b929abc05.mp4,results/transcripts/ditto-agent-30965a808c9d29a7ab38a258be60621b929abc05.json,,1
+0.0,0.0,0.0,14,False,timeout,24,320.87913727760315,results/clips/ditto-agent-e88c1b51ca40694fd9504eb40560194ccdf020ab.mp4,results/transcripts/ditto-agent-e88c1b51ca40694fd9504eb40560194ccdf020ab.json,,1
