@@ -15,9 +15,8 @@ def local_box() -> dict:
 
 
 def deploy_box() -> dict:
-    # dy < ~-0.08 puts the sphere inside the basket wall (basket sits 0.23 m in -y); see sim/README.md.
-    # yaw is a null dimension for a sphere but is still sampled.
-    return {"dx": (-0.20, 0.20), "dy": (-0.08, 0.20), "yaw": (-90.0, 90.0)}
+    # Spec v2 box; the MuJoCo UR5e reaches all of it (the Ditto-only dy floor of -0.08 is gone).
+    return {"dx": (-0.20, 0.20), "dy": (-0.20, 0.20), "yaw": (-90.0, 90.0)}
 
 
 def sample_box(box: dict, n: int, method: str = "sobol", seed: int = 0) -> list[dict]:
