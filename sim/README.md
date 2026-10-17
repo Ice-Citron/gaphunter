@@ -146,3 +146,30 @@ Reach probe (`sim/tools/reach_probe.py`, results in `results/reach_probe.json`):
 Reachable: dx in [-0.10, +0.05] for dy in [0, +0.20], dx up to +0.10 for dy >= +0.10, dx down to -0.20 for dy >= +0.10.
 Not reachable: dx >= +0.15 at any dy (the gripper cannot descend: IK stalls, matching "no measured motion" in the dx=0.18 run).
 At dy=-0.08 the open fingers hit the basket wall. If Ditto is revived, the deploy box is dx [-0.12, +0.12], dy [-0.02, +0.20].
+
+# MuJoCo peg-in-hole fallback (active since 13:00)
+
+`GAPHUNTER_SIM=mujoco`, run from the team `.venv` (`pip install mujoco "imageio[ffmpeg]"`). UR5e model:
+`third_party/mujoco_menagerie/universal_robots_ur5e` (sparse clone, gitignored). Rendering: `MUJOCO_GL=egl`.
+
+| file | role |
+|---|---|
+| `sim/mj_sim.py` | scene (UR5e + 20 mm square peg welded at `attachment_site`; 80x80x50 mm block with a 21 mm square hole at (0.45, 0) + (dx, dy), yaw), DLS IK, joint-servo motion with gravity compensation, the perception model, outcome |
+| `sim/api.py` | the four policy-facing functions (`hole_pose`, `move_to`, `step_down`, `done`); their docstrings are the API docs Astra sees |
+| `sim/write_policy.py` | one Astra call (Responses API, `gpt-6-astra`, reasoning effort medium) → `results/policies/v1.py` + `v1.exchange.json` (prompt, reply, code) |
+| `sim/mj_trial.py` | `run_mj_trial`: loads the cached policy, runs `run(api)`, writes the transcript and an optional clip |
+
+Success (`mj_sim.PegSim.outcome`): tip depth >= 30 mm below the top surface and lateral error < 1 mm.
+`failure_mode`: `collision` (contact force > 150 N), `timeout` (> 300 API calls or 60 s wall), `api_error`
+(the policy raised), else `miss`. `n_decisions` = policy API calls. Same params + seed give the same result.
+
+**Perception model (the gap mechanism, stated openly):** `hole_pose()` models a camera calibrated on the
+local region around (0.45, 0). Radial lens distortion is left uncorrected: estimated offset = d * (1 + 1.6 |d|^2), so the
+error is 1.6 r^3. That is 0.2 mm at r = 5 cm, 1.6 mm at 10 cm, 9.3 mm at dx = 0.18, and 12.8 mm at 20 cm. The yaw error is
+0.1 yaw^3 (rad) on yaw mod 90°. Seeded noise of 0.1 mm / 0.1° is added on top. The physics tolerates about 2 mm (the walls guide the peg).
+The prompt tells Astra only the local placement ranges (+/-5 cm, +/-15°), which is the "benchmark" it designed for.
+
+Astra's v1 policy (`results/policies/v1.py`) aligns to the estimate. It retracts on more than 15 N of contact and
+searches a +/-1.8 mm grid plus +/-4° yaw. First distribution check (random, not Sobol): local 30/30, deploy 4/40.
+Example failure, dx=0.18: the estimate was 9.3 mm off and the search radius is 1.8 mm, so the trial ended with `miss` after 225 calls.
+The UR5e reaches the whole deploy box (dx, dy ±0.20, yaw ±90).
