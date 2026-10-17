@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GapHunter — sweep demo</title>
+<meta name="description" content="Click-through GapHunter demo that replays the committed trial data.">
+<style>
+:root { --bg: #ffffff; --ink: #111111; --muted: #6e6e6e; --faint: #b5b5b5; --line: #e7e7e7; --soft: #f6f6f6; }
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-size: 14px; line-height: 1.5;
+       font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+a { color: var(--ink); }
+button, input, select { font: inherit; color: inherit; }
+.top { height: 48px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 16px; padding: 0 20px;
+       position: sticky; top: 0; background: var(--bg); z-index: 5; }
+.logo { font-weight: 700; letter-spacing: -.02em; }
+.crumb { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.crumb b { color: var(--ink); font-weight: 500; }
+.top .sp { flex: 1; }
+.pill { border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; color: var(--muted); font-size: 12px; white-space: nowrap; text-decoration: none; }
+.app { display: grid; grid-template-columns: 220px minmax(0, 1fr); min-height: calc(100vh - 48px); }
+.rail { border-right: 1px solid var(--line); padding: 20px 12px; }
+.rail h4 { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 500; margin: 0 10px 10px; }
+.steps { list-style: none; margin: 0; padding: 0; }
+.steps button { width: 100%; text-align: left; background: none; border: 0; padding: 7px 10px; border-radius: 6px;
+                display: flex; gap: 10px; align-items: center; cursor: pointer; color: var(--muted); }
+.steps button:hover:not(:disabled) { background: var(--soft); }
+.steps .k { width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--faint); display: grid; place-items: center; font-size: 11px; }
+.steps button[aria-current="step"] { color: var(--ink); background: var(--soft); font-weight: 600; }
+.steps button[aria-current="step"] .k, .steps button.done .k { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.steps button:disabled { color: var(--faint); cursor: default; }
+main { padding: 32px 40px 96px; min-width: 0; }
+.head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+h1 { font-size: 22px; letter-spacing: -.02em; font-weight: 650; margin: 0; }
+.lede { color: var(--muted); margin: 4px 0 0; max-width: 720px; }
+h2 { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 500; margin: 32px 0 10px; }
+.btn { border: 1px solid var(--ink); background: var(--ink); color: var(--bg); padding: 7px 14px; border-radius: 6px;
+       cursor: pointer; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.btn.ghost { background: var(--bg); color: var(--ink); border-color: var(--line); }
+.btn:disabled { opacity: .3; cursor: not-allowed; }
+.tbl { border: 1px solid var(--line); border-radius: 8px; overflow: auto; }
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; font-weight: 500; color: var(--muted); padding: 8px 12px; border-bottom: 1px solid var(--line);
+     background: var(--soft); white-space: nowrap; position: sticky; top: 0; font-size: 12px; }
+td { padding: 9px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+tr.sel td { background: var(--soft); }
+tr.click { cursor: pointer; }
+tr.click:hover td { background: var(--soft); }
+tr.off td { color: var(--faint); cursor: not-allowed; }
+.radio, .box { width: 14px; height: 14px; border: 1.5px solid var(--faint); display: inline-block; vertical-align: -2px; }
+.radio { border-radius: 50%; }
+.box { border-radius: 3px; }
+tr.sel .radio { border: 4px solid var(--ink); }
+tr.sel .box { background: var(--ink); border-color: var(--ink); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 7px; padding: 2px; gap: 2px; }
+.seg button { border: 0; background: none; padding: 5px 12px; border-radius: 5px; cursor: pointer; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.seg button:disabled { color: var(--faint); cursor: not-allowed; }
+.note { color: var(--muted); font-size: 12px; margin: 8px 0 0; }
+.cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; }
+.kv input, .kv select { border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; width: 110px; background: var(--bg); }
+.kv code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
+.panelrow { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); border: 1px solid var(--line); border-radius: 8px; }
+.panelrow > div { padding: 18px; border-right: 1px solid var(--line); min-width: 0; }
+.panelrow > div:last-child { border-right: 0; }
+.pt { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.pt b { font-size: 15px; }
+.pt span { color: var(--muted); font-size: 12px; }
+.counter { font-size: 28px; font-weight: 650; letter-spacing: -.03em; font-variant-numeric: tabular-nums; margin: 6px 0 2px; }
+.counter small { font-size: 13px; color: var(--muted); font-weight: 400; letter-spacing: 0; }
+.bar { height: 2px; background: var(--line); margin: 8px 0 12px; }
+.bar i { display: block; height: 100%; width: 0; background: var(--ink); }
+svg.hm { width: 100%; height: auto; display: block; }
+.runlog { max-height: 340px; }
+.media { display: flex; gap: 10px; overflow-x: auto; padding: 2px 0 6px; min-height: 118px; }
+.media figure, .gallery figure { margin: 0; }
+.media figure { flex: 0 0 auto; width: 160px; }
+.media video, .gallery video { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border: 1px solid var(--line); border-radius: 6px; background: #000; display: block; }
+.media figcaption, .gallery figcaption { font-size: 11px; color: var(--muted); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.empty { color: var(--faint); font-size: 12px; align-self: center; }
+.nums { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 10px; margin: 14px 0 6px; align-items: end; }
+.nums .v { font-size: 22px; font-weight: 600; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.nums .hero .v { font-size: 40px; font-weight: 700; letter-spacing: -.04em; line-height: 1; }
+.nums .l { font-size: 11px; color: var(--muted); }
+.nums .d { font-size: 11px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.nums .none { color: var(--faint); font-size: 18px !important; }
+.mode { display: grid; grid-template-columns: 72px 1fr 70px; gap: 8px; align-items: center; font-size: 12px; margin-bottom: 5px; }
+.mode .track { height: 6px; background: var(--soft); }
+.mode .track i { display: block; height: 100%; background: var(--ink); }
+.mode span:last-child { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+.gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; }
+.why { margin: 12px 0 0; padding-top: 10px; border-top: 1px solid var(--line); }
+.sub { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 16px 0 8px; }
+.hidden { display: none !important; }
+@media (max-width: 860px) {
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .rail { min-width: 0; border-right: 0; border-bottom: 1px solid var(--line); padding: 10px 12px; }
+  .rail h4 { display: none; }
+  .steps { display: flex; gap: 4px; overflow-x: auto; }
+  .steps li { flex: 0 0 auto; }
+  main { padding: 20px 16px 64px; }
+  .cols { grid-template-columns: 1fr; }
+  .top .pill { display: none; }
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <span class="logo">GapHunter</span>
+  <span class="crumb" id="crumb"></span>
+  <span class="sp"></span>
+  <span class="pill">Replay of committed runs</span>
+  <a class="pill" href="https://github.com/Ice-Citron/gaphunter">GitHub</a>
+</header>
+<div class="app">
+  <nav class="rail" aria-label="Steps"><h4>Workflow</h4><ol class="steps" id="steps"></ol></nav>
+  <main>
+    <section data-step="0">
+      <div class="head"><div><h1>Tasks</h1><p class="lede">A task fixes the scene, the robot and the simulator. Pick one to evaluate.</p></div></div>
+      <div class="tbl"><table id="tasks"></table></div>
+      <h2>Simulator</h2>
+      <div class="seg" id="sims"></div>
+      <p class="note">The simulator follows the task. Isaac Sim: coming, not available in this build.</p>
+    </section>
+
+    <section data-step="1" class="hidden">
+      <div class="head"><div><h1>Policies</h1><p class="lede">Select the policies to sweep. Every policy runs through the same harness.</p></div></div>
+      <div class="tbl"><table id="pols"></table></div>
+    </section>
+
+    <section data-step="2" class="hidden">
+      <div class="head"><div><h1>Sweep</h1><p class="lede">Sample object placements from the benchmark's box and from the wider deployment box.</p></div>
+        <button class="btn" id="launch">Launch ▸</button></div>
+      <div class="cols">
+        <div>
+          <div class="tbl"><table class="kv" id="cfg"></table></div>
+          <p class="note">Launch replays the committed trials of the selected policies, capped at these counts. A policy with fewer committed trials plays all it has.</p>
+        </div>
+        <div><div class="tbl" style="padding:16px" id="space"></div></div>
+      </div>
+    </section>
+
+    <section data-step="3" class="hidden">
+      <div class="head"><div><h1>Run</h1><p class="lede" id="run-sub"></p></div><button class="btn ghost" id="skip">Skip to end</button></div>
+      <div class="panelrow" id="charts"></div>
+      <h2>Runs</h2>
+      <div class="tbl runlog"><table><thead><tr><th>Policy</th><th class="n">#</th><th>Box</th><th class="n">dx</th><th class="n">dy</th>
+        <th class="n">yaw</th><th>Result</th><th>Failure mode</th><th class="n">Pose error</th></tr></thead><tbody id="logb"></tbody></table></div>
+      <h2>Media</h2>
+      <div class="media" id="media"></div>
+    </section>
+
+    <section data-step="4" class="hidden">
+      <div class="head"><div><h1>Compare</h1><p class="lede" id="cmp-sub"></p></div>
+        <a class="btn" href="assets/flow/README.md" download="README.md">Export report</a></div>
+      <div class="panelrow" id="cmp"></div>
+      <h2>All policies</h2>
+      <div class="tbl"><table id="all"></table></div>
+    </section>
+
+    <div style="display:flex;gap:8px;margin-top:28px"><button class="btn ghost" id="back">Back</button><button class="btn" id="next">Next</button></div>
+  </main>
+</div>
+<script>
+const D = /*DATA*/;
+const NA = "not available in this build";
+const STEPS = ["Task", "Policies", "Sweep", "Run", "Results"];
+const TASKS = [
+  {id: "peg", t: "Peg-in-hole, UR5e", robot: "UR5e, 20 mm square peg", sim: "mujoco", simName: "MuJoCo"},
+  {id: "sphere", t: "Sphere-in-basket, Franka", robot: "Franka FR3 + Robotiq 2F-85", sim: "ditto", simName: "ManiSkill / Ditto"},
+  {id: "custom", t: "Custom scene", robot: "upload coming", off: true},
+];
+const S = {step: 0, reached: 0, task: "peg", sel: new Set(), nl: 30, nd: 600, timer: null, play: null};
+const $ = id => document.getElementById(id);
+// All text from the data passes through esc(); markup is then parsed in the target element's context.
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+const frag = (el, h) => { const r = document.createRange(); r.selectNodeContents(el); return r.createContextualFragment(h); };
+const put = (el, h) => el.replaceChildren(frag(el, h));
+const pre = (el, h) => el.prepend(frag(el, h));
+const pct = (k, n) => n ? Math.round(100 * k / n) + "%" : "not run";
+const has = p => p.rows.length > 0;
+const chosen = () => D.policies.filter(p => S.sel.has(p.id));
+const taskOf = id => TASKS.find(t => t.id === id);
+
+function go(i) {
+  if (i >= 2 && !chosen().length) i = 1;
+  if (i !== 3) stop();
+  S.step = i; S.reached = Math.max(S.reached, i);
+  document.querySelectorAll("section[data-step]").forEach(s => s.classList.toggle("hidden", +s.dataset.step !== i));
+  $("back").disabled = i === 0;
+  $("next").classList.toggle("hidden", i === 2 || i === 4);
+  $("next").textContent = i === 3 ? "Compare results" : "Next";
+  $("next").disabled = i === 1 && !chosen().length;
+  put($("crumb"), `Ice-Citron / gaphunter / <b>${esc(taskOf(S.task).t)}</b>${i ? " / " + STEPS[i].toLowerCase() : ""}`);
+  put($("steps"), STEPS.map((s, k) => {
+    const done = k < S.reached && k !== i;
+    return `<li><button data-i="${k}" ${k > S.reached ? "disabled" : ""} class="${done ? "done" : ""}" ${k === i ? 'aria-current="step"' : ""}>
+      <span class="k">${done ? "✓" : k + 1}</span>${s}</button></li>`;
+  }).join(""));
+  $("steps").querySelectorAll("button").forEach(b => b.onclick = () => go(+b.dataset.i));
+  [tasks, policies, sweep, run, compare][i]();
+  window.scrollTo(0, 0);
+}
+
+function tasks() {
+  put($("tasks"), `<tr><th></th><th>Project</th><th>Robot</th><th>Simulator</th><th class="n">Policies with runs</th><th class="n">Committed trials</th></tr>` +
+    TASKS.map(t => {
+      const ps = D.policies.filter(p => p.task === t.id && has(p));
+      return `<tr class="${t.off ? "off" : "click"} ${t.id === S.task ? "sel" : ""}" data-id="${t.id}"><td><span class="radio"></span></td>
+        <td><b>${esc(t.t)}</b></td><td>${esc(t.robot)}</td><td>${t.off ? "upload coming · " + NA : esc(t.simName)}</td>
+        <td class="n">${t.off ? "" : ps.length}</td><td class="n">${t.off ? "" : ps.reduce((a, p) => a + p.rows.length, 0)}</td></tr>`;
+    }).join(""));
+  $("tasks").querySelectorAll("tr.click").forEach(r => r.onclick = () => setTask(r.dataset.id));
+  const cur = taskOf(S.task).sim;
+  put($("sims"), [["mujoco", "MuJoCo"], ["ditto", "ManiSkill"], ["isaac", "Isaac Sim"]].map(([id, n]) =>
+    `<button data-id="${id}" aria-pressed="${id === cur}" ${id === "isaac" ? `disabled title="${NA}"` : ""}>${n}${id === "isaac" ? " · coming" : ""}</button>`).join(""));
+  $("sims").querySelectorAll("button:not(:disabled)").forEach(b => b.onclick = () => setTask(TASKS.find(t => t.sim === b.dataset.id).id));
+}
+function setTask(id) {
+  if (id !== S.task) S.sel = new Set(D.policies.filter(p => p.task === id && has(p)).map(p => p.id));
+  S.task = id; S.reached = Math.min(S.reached, 1); go(S.step);
+}
+
+function policies() {
+  put($("pols"), `<tr><th></th><th>Policy</th><th>Family</th><th>Author</th><th>Task</th><th>Last result</th><th class="n">Trials</th></tr>` +
+    D.policies.map(p => {
+      const off = !has(p) || p.task !== S.task;
+      const last = !has(p) ? "no checkpoint in this build" : p.task !== S.task ? "other task" : p.last;
+      return `<tr class="${off ? "off" : "click"} ${S.sel.has(p.id) && !off ? "sel" : ""}" data-id="${esc(p.id)}" title="${esc(p.note)}">
+        <td><span class="box"></span></td><td><b>${esc(p.id)}</b></td><td>${esc(p.family)}</td><td>${esc(p.author)}</td>
+        <td>${esc(taskOf(p.task).t)}</td><td>${esc(last)}</td><td class="n">${has(p) ? p.rows.length : ""}</td></tr>`;
+    }).join(""));
+  $("pols").querySelectorAll("tr.click").forEach(r => r.onclick = () => {
+    S.sel.has(r.dataset.id) ? S.sel.delete(r.dataset.id) : S.sel.add(r.dataset.id);
+    S.reached = Math.min(S.reached, 1); go(1);
+  });
+}
+
+const area = b => (b.dx[1] - b.dx[0]) * (b.dy[1] - b.dy[0]);
+function sweep() {
+  const B = D.tasks[S.task];
+  const maxL = Math.max(1, ...chosen().map(p => p.rows.filter(r => r[0] === 0).length));
+  const maxD = Math.max(0, ...chosen().map(p => p.rows.filter(r => r[0] === 1).length));
+  S.nl = Math.min(S.nl, maxL); S.nd = Math.min(S.nd, maxD);
+  const rng = (a, u) => `<code>${a[0]} … ${a[1]} ${u}</code>`;
+  put($("cfg"), `
+    <tr><th>Parameter</th><th>Local box (benchmark)</th><th>Deployment box</th></tr>
+    <tr><td>dx</td><td>${rng(B.local.dx, "m")}</td><td>${rng(B.deploy.dx, "m")}</td></tr>
+    <tr><td>dy</td><td>${rng(B.local.dy, "m")}</td><td>${rng(B.deploy.dy, "m")}</td></tr>
+    <tr><td>yaw</td><td>${rng(B.local.yaw, "°")}</td><td>${rng(B.deploy.yaw, "°")}</td></tr>
+    <tr><td>sampler</td><td colspan="2"><select id="smp"><option>sobol</option><option disabled>uniform — ${NA}</option><option disabled>grid — ${NA}</option></select></td></tr>
+    <tr><td>n local</td><td colspan="2"><input type="number" id="nl" min="1" max="${maxL}" value="${S.nl}"> <span class="note">≤ ${maxL} committed</span></td></tr>
+    <tr><td>n deploy</td><td colspan="2"><input type="number" id="nd" min="0" max="${maxD}" value="${S.nd}"> <span class="note">≤ ${maxD} committed</span></td></tr>
+    <tr><td>workers</td><td colspan="2"><input type="number" value="8" disabled> <span class="note">the committed runs used 8</span></td></tr>`);
+  const clamp = (el, k, max) => el.oninput = () => { S[k] = Math.max(+el.min, Math.min(max, +el.value || 0)); };
+  clamp($("nl"), "nl", maxL); clamp($("nd"), "nd", maxD);
+  const W = 320, H = 320, X = B.deploy.dx, Y = B.deploy.dy, L = B.local;
+  const sx = v => 30 + (v - X[0]) / (X[1] - X[0]) * W, sy = v => 10 + H - (v - Y[0]) / (Y[1] - Y[0]) * H;
+  const yx = v => 30 + (v - B.deploy.yaw[0]) / (B.deploy.yaw[1] - B.deploy.yaw[0]) * 320;
+  put($("space"), `<div class="sub" style="margin-top:0">Parameter space · dx × dy</div>
+    <svg class="hm" viewBox="0 0 ${W + 50} ${H + 50}" role="img" aria-label="Local box nested inside the deployment box">
+      <rect x="30" y="10" width="${W}" height="${H}" fill="#f6f6f6" stroke="#111" stroke-width="1"/>
+      <rect x="${sx(L.dx[0])}" y="${sy(L.dy[1])}" width="${sx(L.dx[1]) - sx(L.dx[0])}" height="${sy(L.dy[0]) - sy(L.dy[1])}" fill="#fff" stroke="#111" stroke-width="2" stroke-dasharray="6 4"/>
+      <text x="${30 + W - 6}" y="26" font-size="12" text-anchor="end" fill="#111">deployment box</text>
+      <text x="${sx(L.dx[0]) + 4}" y="${sy(L.dy[1]) - 6}" font-size="12" fill="#111">local box</text>
+      <text x="${30 + W / 2}" y="${H + 40}" font-size="11" text-anchor="middle" fill="#6e6e6e">dx ${X[0]} … ${X[1]} m</text>
+      <text x="14" y="${10 + H / 2}" font-size="11" text-anchor="middle" fill="#6e6e6e" transform="rotate(-90 14 ${10 + H / 2})">dy ${Y[0]} … ${Y[1]} m</text>
+    </svg>
+    <div class="sub">yaw · ${B.deploy.yaw[0]} … ${B.deploy.yaw[1]}°</div>
+    <svg class="hm" viewBox="0 0 370 30"><rect x="30" y="8" width="320" height="10" fill="#f6f6f6" stroke="#111"/>
+      <rect x="${yx(L.yaw[0])}" y="8" width="${yx(L.yaw[1]) - yx(L.yaw[0])}" height="10" fill="#fff" stroke="#111" stroke-width="2" stroke-dasharray="6 4"/></svg>
+    <p class="note">The local box covers ${(100 * area(L) / area(B.deploy)).toFixed(1)}% of the deployment box by dx × dy area.</p>`);
+}
+
+function played(p) { let l = 0, d = 0; return p.rows.filter(r => r[0] === 0 ? l++ < S.nl : d++ < S.nd); }
+function stats(rows) {
+  const s = {nl: 0, kl: 0, nd: 0, kd: 0, no: 0, ko: 0, modes: {}, cells: {}};
+  for (const r of rows) {
+    if (r[2] === "api_error") continue;
+    if (r[0] === 0) { s.nl++; s.kl += r[1]; } else { s.nd++; s.kd += r[1]; if (!r[3]) { s.no++; s.ko += r[1]; } }
+    const m = r[1] ? "success" : r[2]; s.modes[m] = (s.modes[m] || 0) + 1;
+    const c = r[4] + "," + r[5]; (s.cells[c] = s.cells[c] || [0, 0]); s.cells[c][0]++; s.cells[c][1] += r[1];
+  }
+  return s;
+}
+function heat(p, s) {
+  const N = D.bins, W = 320, cw = W / N, X = p.box.deploy.dx, Y = p.box.deploy.dy, L = p.box.local;
+  const sx = v => (v - X[0]) / (X[1] - X[0]) * W, sy = v => W - (v - Y[0]) / (Y[1] - Y[0]) * W;
+  let g = "";
+  for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+    const c = s.cells[i + "," + j], y = (N - 1 - j) * cw;
+    if (!c) { g += `<rect x="${i * cw + .5}" y="${y + .5}" width="${cw - 1}" height="${cw - 1}" fill="#fbfbfb"/>`; continue; }
+    const v = c[1] / c[0], sh = Math.round(244 - v * (244 - 17));
+    g += `<rect x="${i * cw + .5}" y="${y + .5}" width="${cw - 1}" height="${cw - 1}" fill="rgb(${sh},${sh},${sh})"><title>${c[1]}/${c[0]} succeeded</title></rect>`;
+    if (c[0] >= 2) g += `<text x="${i * cw + cw / 2}" y="${y + cw / 2 + 4}" font-size="10" text-anchor="middle" fill="${v > .5 ? "#fff" : "#111"}">${Math.round(100 * v)}%</text>`;
+  }
+  const rx = sx(L.dx[0]), ry = sy(L.dy[1]), rw = sx(L.dx[1]) - rx, rh = sy(L.dy[0]) - ry;
+  g += `<rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" fill="none" stroke="#fff" stroke-width="5"/>
+        <rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" fill="none" stroke="#111" stroke-width="2" stroke-dasharray="6 4"/>`;
+  return `<svg class="hm" viewBox="-28 -4 ${W + 32} ${W + 30}" role="img" aria-label="Success rate over the deployment box for ${esc(p.id)}">${g}
+    <text x="${W / 2}" y="${W + 20}" font-size="10" fill="#6e6e6e" text-anchor="middle">dx ${X[0]} … ${X[1]} m · dashed = local box</text>
+    <text x="-16" y="${W / 2}" font-size="10" fill="#6e6e6e" text-anchor="middle" transform="rotate(-90 -16 ${W / 2})">dy ${Y[0]} … ${Y[1]} m</text></svg>`;
+}
+
+function run() {
+  stop();
+  const ps = chosen(), total = ps.reduce((a, p) => a + played(p).length, 0);
+  $("run-sub").textContent = `Replaying ${total} committed trials, 20 per second per policy, in the order they ran.`;
+  put($("charts"), ps.map(p => `<div><div class="pt"><b>${esc(p.id)}</b><span>${esc(p.family)}</span></div>
+    <div class="counter" id="c-${esc(p.id)}"></div><div class="bar"><i id="b-${esc(p.id)}"></i></div><div id="h-${esc(p.id)}"></div></div>`).join(""));
+  $("logb").replaceChildren();
+  put($("media"), `<span class="empty">Clips appear here as trials with video finish.</span>`);
+  S.play = ps.map(p => ({p, rows: played(p), i: 0}));
+  const draw = st => {
+    const s = stats(st.rows.slice(0, st.i)), id = st.p.id;
+    put($("c-" + id), `${s.kl + s.kd} <small>/ ${s.nl + s.nd} succeeded</small>`);
+    $("b-" + id).style.width = (st.rows.length ? 100 * st.i / st.rows.length : 100) + "%";
+    put($("h-" + id), heat(st.p, s));
+  };
+  const emit = (st, r) => {
+    pre($("logb"), `<tr><td>${esc(st.p.id)}</td><td class="n">${st.i}</td><td>${r[0] ? "deploy" : "local"}</td><td class="n">${r[8]}</td>
+      <td class="n">${r[9]}</td><td class="n">${r[10]}</td><td>${r[1] ? "success" : "failure"}</td><td>${esc(r[2])}</td>
+      <td class="n">${r[7] == null ? "" : r[7] + " mm"}</td></tr>`);
+    const b = $("logb"); while (b.rows.length > 200) b.deleteRow(-1);
+    if (r[6] >= 0) {
+      const c = st.p.clips[r[6]], m = $("media"); m.querySelector(".empty")?.remove();
+      pre(m, `<figure><video src="${esc(c.url)}#t=0.5" muted playsinline preload="metadata"></video>
+        <figcaption>${esc(st.p.id)} · ${esc(c.mode)} · ${c.phase}</figcaption></figure>`);
+      const v = m.querySelector("video"); v.onmouseenter = () => v.play(); v.onmouseleave = () => v.pause();
+    }
+  };
+  S.play.forEach(draw);
+  const done = () => { stop(); $("run-sub").textContent = `Done: ${total} committed trials replayed.`; };
+  S.timer = setInterval(() => {
+    let busy = false;
+    for (const st of S.play) { if (st.i >= st.rows.length) continue; busy = true; emit(st, st.rows[st.i++]); draw(st); }
+    if (!busy) done();
+  }, 50);
+  $("skip").onclick = () => { stop(); for (const st of S.play) { while (st.i < st.rows.length) emit(st, st.rows[st.i++]); draw(st); } done(); };
+}
+function stop() { if (S.timer) clearInterval(S.timer); S.timer = null; }
+
+function compare() {
+  const ps = chosen(), base = ps[0], bs = stats(played(base));
+  const rate = (k, n) => n ? k / n : null;
+  const delta = (v, b, isBase) => isBase ? "baseline" : v == null || b == null ? "" :
+    `${v >= b ? "+" : "−"}${Math.abs(Math.round(100 * (v - b)))} pp vs ${base.id}`;
+  $("cmp-sub").textContent = `Side by side. Deltas are percentage points against ${base.id}, the first selected policy.`;
+  put($("cmp"), ps.map(p => {
+    const s = stats(played(p)), isB = p === base;
+    const o = rate(s.ko, s.no), l = rate(s.kl, s.nl), d = rate(s.kd, s.nd);
+    const modes = Object.entries(s.modes).sort((a, b) => b[1] - a[1]), tot = modes.reduce((a, m) => a + m[1], 0);
+    const shown = new Set(played(p).map(r => r[6]).filter(c => c >= 0));
+    p.clips.forEach((c, i) => { if (c.phase === "nominal") shown.add(i); });
+    const gal = [...shown].map(i => p.clips[i]).sort((a, b) => (b.mode === "success") - (a.mode === "success")).map(c =>
+      `<figure><video src="${esc(c.url)}#t=0.5" controls muted playsinline preload="metadata"></video><figcaption>${esc(c.mode)} · ${c.phase} · dx ${c.dx} dy ${c.dy}</figcaption></figure>`).join("");
+    return `<div><div class="pt"><b>${esc(p.id)}</b><span>${esc(p.family)} · ${s.nl} local · ${s.nd} deploy</span></div>
+      ${heat(p, s)}
+      <div class="nums">
+        <div class="hero"><div class="v ${o == null ? "none" : ""}">${pct(s.ko, s.no)}</div><div class="l">outside local box · n=${s.no}</div><div class="d">${esc(delta(o, rate(bs.ko, bs.no), isB))}</div></div>
+        <div><div class="v ${l == null ? "none" : ""}">${pct(s.kl, s.nl)}</div><div class="l">local · n=${s.nl}</div><div class="d">${esc(delta(l, rate(bs.kl, bs.nl), isB))}</div></div>
+        <div><div class="v ${d == null ? "none" : ""}">${pct(s.kd, s.nd)}</div><div class="l">deployment · n=${s.nd}</div><div class="d">${esc(delta(d, rate(bs.kd, bs.nd), isB))}</div></div></div>
+      <div class="sub">Outcomes</div>
+      ${modes.map(([m, c]) => `<div class="mode"><span>${esc(m)}</span><span class="track"><i style="width:${100 * c / tot}%"></i></span><span>${c} · ${Math.round(100 * c / tot)}%</span></div>`).join("")}
+      <div class="sub">Media</div>
+      <div class="gallery">${gal || '<span class="empty">No clips recorded.</span>'}</div>
+      ${p.why ? `<p class="why">${esc(p.why)}</p>` : ""}</div>`;
+  }).join(""));
+  const T = D.table;
+  put($("all"), `<tr>${T.cols.map((c, i) => `<th class="${i >= 3 && i <= 7 ? "n" : ""}">${esc(c)}</th>`).join("")}</tr>` + T.rows.map(r =>
+    `<tr class="${r[8] === "planned" ? "off" : ""}">${r.map((v, i) => `<td class="${i >= 3 && i <= 7 ? "n" : ""}">${esc(i === 2 && v.includes("sphere") ? "Sphere-in-basket, Franka" : v)}</td>`).join("")}</tr>`).join(""));
+}
+
+$("back").onclick = () => go(Math.max(0, S.step - 1));
+$("next").onclick = () => go(Math.min(4, S.step + 1));
+$("launch").onclick = () => { S.reached = Math.max(S.reached, 3); go(3); };
+S.sel = new Set(D.policies.filter(p => p.task === "peg" && has(p)).map(p => p.id));
+go(0);
+</script>
+</body>
+</html>
