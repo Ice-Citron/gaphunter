@@ -13,7 +13,7 @@ UNITS = {"dx": "m", "dy": "m", "yaw": "deg"}
 
 # Spec defaults, used only when runner.sample is not importable.
 _LOCAL_BOX = {"dx": (-0.05, 0.05), "dy": (-0.05, 0.05), "yaw": (-15.0, 15.0)}
-_DEPLOY_BOX = {"dx": (-0.20, 0.20), "dy": (-0.20, 0.20), "yaw": (-90.0, 90.0)}
+_DEPLOY_BOX = {"dx": (-0.20, 0.20), "dy": (-0.08, 0.20), "yaw": (-90.0, 90.0)}
 
 # Dark surface shared with the Streamlit page.
 BG = "#0e1117"
@@ -155,7 +155,9 @@ def _cmap():
 
 
 def heatmap(df, x="dx", y="dy", local_box=None, path="results/heatmap.png", deploy_box=None,
-            bins=8, yaw_bins=6) -> str:
+            bins=8, marginal="dy", marginal_bins=7) -> str:
+    """2-D success grid over (x, y) plus a 1-D success marginal over `marginal`.
+    Any of dx, dy, yaw works for x, y or marginal (yaw matters for `medium`, not `easy`)."""
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -207,8 +209,8 @@ def heatmap(df, x="dx", y="dy", local_box=None, path="results/heatmap.png", depl
     ax.text(llx, lhy, " local benchmark", color="white", fontsize=9, va="bottom", ha="left")
     ax.set_xlim(xlo, xhi)
     ax.set_ylim(ylo, yhi)
-    ax.set_xlabel(f"{x} offset (m)", color=INK, fontsize=10)
-    ax.set_ylabel(f"{y} offset (m)", color=INK, fontsize=10)
+    ax.set_xlabel(f"{x} offset ({UNITS[x]})", color=INK, fontsize=10)
+    ax.set_ylabel(f"{y} offset ({UNITS[y]})", color=INK, fontsize=10)
     ax.set_title("Success rate, Astra policy — deployment domain", color=INK, fontsize=12, loc="left")
     cb = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.03)
     cb.ax.tick_params(colors=MUTED, labelsize=9)
@@ -216,12 +218,13 @@ def heatmap(df, x="dx", y="dy", local_box=None, path="results/heatmap.png", depl
     cb.set_ticks([0, 0.5, 1])
     cb.set_ticklabels(["0%", "50%", "100%"])
 
-    # --- 1-D marginal over yaw ---
-    wlo, whi = _range(deploy_box, "yaw")
-    we = np.linspace(wlo, whi, yaw_bins + 1)
-    wi = np.clip(np.digitize(df["yaw"], we) - 1, 0, yaw_bins - 1)
-    wn = np.bincount(wi, minlength=yaw_bins)
-    wk = np.bincount(wi, weights=succ, minlength=yaw_bins)
+    # --- 1-D marginal ---
+    m = marginal
+    wlo, whi = _range(deploy_box, m)
+    we = np.linspace(wlo, whi, marginal_bins + 1)
+    wi = np.clip(np.digitize(df[m], we) - 1, 0, marginal_bins - 1)
+    wn = np.bincount(wi, minlength=marginal_bins)
+    wk = np.bincount(wi, weights=succ, minlength=marginal_bins)
     with np.errstate(invalid="ignore", divide="ignore"):
         wr = np.where(wn > 0, wk / wn, 0.0)
     centers = (we[:-1] + we[1:]) / 2
@@ -230,7 +233,7 @@ def heatmap(df, x="dx", y="dy", local_box=None, path="results/heatmap.png", depl
     for cx, v, cnt in zip(centers, wr, wn):
         if cnt:
             ax2.text(cx, v + 0.02, f"{v:.0%}\nn={cnt}", ha="center", va="bottom", fontsize=9, color=INK)
-    llw, lhw = _range(local_box, "yaw")
+    llw, lhw = _range(local_box, m)
     ax2.axvspan(llw, lhw, facecolor="white", alpha=0.06, edgecolor="white", linestyle=(0, (4, 3)),
                 linewidth=1.2)
     ax2.text((llw + lhw) / 2, 1.13, "local", color="white", fontsize=9, ha="center")
@@ -238,8 +241,8 @@ def heatmap(df, x="dx", y="dy", local_box=None, path="results/heatmap.png", depl
     ax2.set_ylim(0, 1.2)
     ax2.set_yticks([0, 0.5, 1])
     ax2.set_yticklabels(["0%", "50%", "100%"])
-    ax2.set_xlabel("yaw offset (deg)", color=INK, fontsize=10)
-    ax2.set_title("Success rate by yaw", color=INK, fontsize=12, loc="left")
+    ax2.set_xlabel(f"{m} offset ({UNITS[m]})", color=INK, fontsize=10)
+    ax2.set_title(f"Success rate by {m}", color=INK, fontsize=12, loc="left")
     ax2.grid(axis="y", color="#30343c", linewidth=0.6)
     ax2.set_axisbelow(True)
 

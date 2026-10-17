@@ -60,7 +60,7 @@ Add `--fake` to either batch command to run the analytic fake sim instead.
 - One task, one policy, one simulator. No real hardware.
 - n ≈ 100 deployment trials. Each cell of the heatmap holds a few trials, so cell rates are noisy.
 - Coverage is box volume. It does not weight regions by how often deployment visits them.
-- Yaw has no effect on a sphere. The flat yaw panel is expected.
+- Yaw is sampled but has no effect on a sphere (the `easy` task). The `medium` task (a tapered block) makes it matter.
 - The deployment `dy` range stops at −0.08 m. Below that the sphere starts inside the basket wall.
 
 ## Roadmap
