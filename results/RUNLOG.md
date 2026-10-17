@@ -6,7 +6,7 @@ Superseded Ditto plan: 170–290 s/trial, n_local 20, n_deploy 60, 8 workers, ca
 MuJoCo fallback (Agent A, commit e864601): 0.1–1.5 s/trial, in-process, deterministic per (params, seed).
 Deploy box back to spec v2: dx, dy ±0.20 m, yaw ±90°. Local box ±0.05 m, ±15°. Chosen n: local 30, deploy 150 (brief's cap).
 
-## Real runs (MuJoCo, GAPHUNTER_SIM=mujoco, 8 workers)
+## Real runs v1 (MuJoCo, old 0.1 mm noise; SUPERSEDED by the rerun below)
 13:06:40 `GAPHUNTER_SIM=mujoco .venv/bin/python -m runner.batch --box local --n 30 --tag local --workers 8`
 ```
 n               30
@@ -41,7 +41,7 @@ Run from the project `.venv/bin/python`, NOT the framework venv: only the re-exe
 240 s per-trial timeout (`GAPHUNTER_TRIAL_TIMEOUT_S`). Enable the real backend with `GAPHUNTER_SIM=ditto`.
 `GAPHUNTER_SIM=ditto .venv/bin/python -m runner.batch --box local --n 5 --tag probe --workers 1`
 
-## Planned rerun (after Agent A pushes the perception-noise change)
+## Rerun (current results; Agent A's camera-noise model, commit 022b42f)
 `runner/refine.py` adds 10 Sobol points to every 8x8 dx×dy cell (same bin edges as the heatmap) with
 success in [10%, 90%] or n < 5, and appends them to deploy.csv with `pass`=2 (pass-1 rows get `pass`=1).
 Pass-2 points are not uniform: headline success rates and coverage use `pass == 1` only.
@@ -53,3 +53,27 @@ export GAPHUNTER_SIM=mujoco
 ```
 Dry run of refine on the current 150-row deploy.csv (13:11, copy, not kept): with ~2.3 trials per cell, all 64
 cells fall under n < 5, so it added 640 points (108/640 = 16.9%), 217 s total. Re-run gives the same rows (only t_wall differs).
+
+### Rerun results, 13:16–13:17 (GAPHUNTER_SIM=mujoco, 8 workers)
+13:16:41 local n=30
+```
+success rate    90.0% (27/30)
+failure modes   miss=3
+mean decisions  112.53
+total wall time 5.5 s (mean 0.18 s/trial)
+```
+13:16:43 deploy n=600, --render-failures 4 (pass 1)
+```
+success rate    15.5% (93/600)
+failure modes   miss=507
+mean decisions  209.87
+total wall time 206.4 s (mean 0.34 s/trial)
+clips           4
+```
+13:17:14 refine --per-cell 10: 21 of 64 cells (success 10–90%; every cell had n >= 9) -> 210 pass-2 rows
+```
+success rate    30.5% (64/210)   <- targeted cells, NOT a domain estimate
+failure modes   miss=146
+```
+deploy.csv = 810 rows (600 pass 1 + 210 pass 2). Failure clips: rows 0, 1, 3, 4 (all miss;
+pose_error_mm 17.5 / 8.5 / 13.8 / 3.0). Single failure mode stands (user, 13:15). Wall time for all three: 43 s.
