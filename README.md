@@ -26,7 +26,7 @@ and proving you have found them.
 Hence, I believe this is where the future gap in the market will be: not in building stronger base policies,
 but in helping others to bridge their policies from 90% to 99.99% reliability.
 
-I built GapHunter for this gap. The user uploads a policy for a defined task, and GapHunter runs coverage-driven
+We are building GapHunter for this gap. The user uploads a policy for a defined task, and GapHunter runs coverage-driven
 tests against it in simulation (MuJoCo and ManiSkill for now), sampling the full deployment workspace rather than
 the range the policy was written for, and returns the policy's operating envelope: where it works, where it
 degrades, where it fails, and why, with a transcript for every trial and clips of sample failures. It is the
@@ -39,7 +39,7 @@ MolmoAct2 (a VLA). Pi-0.5 is configured but not yet run (its checkpoint didn't d
 Robotics and GR00T are placeholders. In the future, this system will be extended to more generic task
 categories, be hardware agnostic, support more simulators, and let users define custom tasks and scenes.
 
-## How to get started
+## Getting started
 
 **To look around:** open the [demo](https://ice-citron.github.io/gaphunter/flow.html). It replays the
 committed runs in this repository; nothing to install.
